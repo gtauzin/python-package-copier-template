@@ -1,0 +1,55 @@
+# Getting Started
+
+This guide will help you get started with {{ project_name }}.
+
+## Installation
+
+### Using pip
+
+```bash
+pip install {{ package_name }}
+```
+
+### Using uv
+
+[uv](https://github.com/astral-sh/uv) is a modern Python package manager that's much faster than pip.
+
+```bash
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install the package
+uv pip install {{ package_name }}
+```
+
+### From Source
+
+To install from source:
+
+```bash
+git clone https://github.com/{{ github_username }}/{{ project_slug }}.git
+cd {{ project_slug }}
+uv sync
+```
+
+## Basic Usage
+
+Here's how to use {{ project_name }} in your project:
+
+```python
+from {{ package_name }}.example import hello
+
+# Basic usage
+greeting = hello()
+print(greeting)  # Output: Hello, World!
+
+# With custom name
+greeting = hello("Python")
+print(greeting)  # Output: Hello, Python!
+```
+
+## Next Steps
+
+- Read the [User Guide](user-guide.md) for more detailed information
+- Check out the [API Reference](api-reference.md) for complete API documentation
+- See [Contributing](contributing.md) to learn how to contribute to the project

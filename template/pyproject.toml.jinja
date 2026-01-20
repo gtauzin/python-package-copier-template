@@ -1,0 +1,146 @@
+[project]
+name = "{{ package_name }}"
+dynamic = ["version"]
+description = "{{ description }}"
+readme = "README.md"
+maintainers = [
+    { name = "{{ author_name }}", email = "{{ author_email }}" }
+]
+authors = [
+    { name = "{{ author_name }}", email = "{{ author_email }}" }
+]
+license = { text = "{{ license }}" }
+requires-python = ">={{ python_version }}"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: {{ license.replace('-', ' ') }} License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: {{ python_version }}",
+
+]
+dependencies = [
+
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=7.0",
+    "pytest-mock>=3.14",
+    "covdefaults>=2.3",
+    "ruff>=0.8.0",
+    "ty>=0.0.12",
+    "nox>=2024.3.2",
+    "pre-commit>=4.0.0",
+]
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.7",
+    "mkdocstrings[python]>=0.26.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/{{ github_username }}/{{ project_slug }}"
+Documentation = "https://{{ project_slug }}.readthedocs.io"
+Repository = "https://github.com/{{ github_username }}/{{ project_slug }}"
+"Bug Tracker" = "https://github.com/{{ github_username }}/{{ project_slug }}/issues"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{ package_name }}"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/{{ package_name }}/_version.py"
+
+[tool.ruff]
+line-length = 120
+target-version = "py{{ python_version.replace('.', '') }}"
+src = ["src", "tests"]
+show-fixes = true
+
+[tool.ruff.format]
+preview = true
+docstring-code-format = true
+docstring-code-line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG", # flake8-unused-arguments
+    "SIM", # flake8-simplify
+    "PL",  # Pylint
+    "T201", # Print statement
+]
+ignore = [
+    "E203",   # space before : (needed for how black formats slicing)
+    "E501",   # line too long (handled by formatter)
+    "B008",   # do not perform function calls in argument defaults
+    "PLR0913", # too many args in func def
+    "PLR0915", # too many statements
+    "PLR0912", # too many branches
+    "PLR2004", # magic value used in comparison
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["ARG", "S101", "T201", "PLR2004"]  # Allow assert statements, prints, and magic values in tests
+
+[tool.ruff.lint.isort]
+known-first-party = ["{{ package_name }}"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--color=yes",
+    "--cov={{ package_name }}",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.paths]
+source = ["src/{{ package_name }}"]
+
+[tool.coverage.run]
+source = ["{{ package_name }}"]
+branch = true
+parallel = true
+sigterm = true
+concurrency = ["multiprocessing"]
+plugins = ["covdefaults"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+]
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+fail_under = 1
+include_namespace_packages = true
+
+[tool.coverage.html]
+show_contexts = true
+
+[tool.ty]
+python_version = "{{ python_version }}"
+strict = true

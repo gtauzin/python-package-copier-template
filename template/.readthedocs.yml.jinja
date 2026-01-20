@@ -1,0 +1,23 @@
+# Read the Docs configuration
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+version: 2
+
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "{{ python_version }}"
+  jobs:
+    post_install:
+      - uv sync --group docs
+
+mkdocs:
+  configuration: mkdocs.yml
+  fail_on_warning: false
+
+python:
+  install:
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs

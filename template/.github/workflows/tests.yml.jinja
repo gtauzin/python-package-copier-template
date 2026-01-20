@@ -1,0 +1,91 @@
+{% if include_github_actions %}name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: {% raw %}${{ github.workflow }}-${{ github.ref }}{% endraw %}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: {% raw %}Python ${{ matrix.python-version }} on ${{ matrix.os }}{% endraw %}
+    runs-on: {% raw %}${{ matrix.os }}{% endraw %}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["{{ python_version }}", "3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Add .local/bin to Windows PATH
+        if: {% raw %}matrix.os == 'windows-latest'{% endraw %}
+        shell: bash
+        run: echo "$USERPROFILE/.local/bin" >> {% raw %}$GITHUB_PATH{% endraw %}
+
+      - name: Install nox
+        run: uv tool install nox
+
+      - name: Set up Python {% raw %}${{ matrix.python-version }}{% endraw %}
+        run: uv python install {% raw %}${{ matrix.python-version }}{% endraw %}
+
+      - name: Run tests with coverage
+        if: {% raw %}matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ python_version }}{% raw %}'{% endraw %}
+        run: nox -s tests_coverage --python {% raw %}${{ matrix.python-version }}{% endraw %}
+
+      - name: Run tests
+        if: {% raw %}!(matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ python_version }}{% raw %}'){% endraw %}
+        run: nox -s tests --python {% raw %}${{ matrix.python-version }}{% endraw %}
+
+      - name: Upload test results to Codecov
+        if: {% raw %}${{ !cancelled() }} && matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ python_version }}{% raw %}'{% endraw %}
+        uses: codecov/test-results-action@v1
+        with:
+          token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
+          file: {% raw %}'${{ github.workspace }}/junit.${{ matrix.python-version }}.xml'{% endraw %}
+
+      - name: Upload coverage report to Codecov
+        uses: codecov/codecov-action@v5
+        if: {% raw %}matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ python_version }}{% raw %}'{% endraw %}
+        with:
+          token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
+          files: {% raw %}'${{ github.workspace }}/coverage.${{ matrix.python-version }}.xml'{% endraw %}
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
+
+  lint:
+    name: Lint and type check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Install nox
+        run: uv tool install nox
+
+      - name: Set up Python
+        run: uv python install {{ python_version }}
+
+      - name: Run lint checks
+        run: nox -s lint
+{% endif %}

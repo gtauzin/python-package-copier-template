@@ -1,0 +1,82 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for the copier template
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your interest in improving the template! Please describe your feature request below.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Please describe.
+      placeholder: I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like
+      placeholder: I would like the template to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Describe any alternative solutions or features you've considered
+      placeholder: I also thought about...
+
+  - type: textarea
+    id: benefits
+    attributes:
+      label: Benefits
+      description: How would this feature benefit users of the template?
+      placeholder: This would help developers...
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What aspect of the template does this feature relate to?
+      options:
+        - Project structure
+        - Documentation
+        - Testing
+        - CI/CD
+        - Development tools
+        - Code quality
+        - Dependencies
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation Ideas
+      description: Do you have any ideas on how this could be implemented?
+      placeholder: This could be implemented by...
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or examples about the feature request
+      placeholder: Here's an example from another project...
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched for similar feature requests before creating this one
+          required: true
+        - label: This feature would benefit the general user base, not just my specific use case
+          required: true

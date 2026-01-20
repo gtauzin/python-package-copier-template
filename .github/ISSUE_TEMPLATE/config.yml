@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or Discussion
+    url: https://github.com/gtauzin/python-package-copier-template/discussions
+    about: Please use GitHub Discussions for questions and general discussions
+  - name: Documentation
+    url: https://gtauzin.github.io/python-package-copier-template/
+    about: Check the documentation for guides and references

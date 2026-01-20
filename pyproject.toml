@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "python-package-copier-template"
+dynamic = ["version"]
+description = "A modern Python package template using copier"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[dependency-groups]
+test = [
+    "pytest>=8.3.0",
+    "pytest-cov>=7.0.0",
+    "pytest-mock>=3.14.0",
+    "copier>=9.11.0",
+]
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.7.0",
+    "mkdocs-autorefs>=1.0.0",
+]
+fix = [
+  "pre-commit-uv>=4.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--color=yes",
+]
+filterwarnings = [
+    "ignore::copier._vcs.DirtyLocalWarning",
+    "ignore::DeprecationWarning:pathspec",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+show-fixes = true
+
+[tool.ruff.format]
+preview = true
+docstring-code-format = true
+docstring-code-line-length = 100
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "PL",  # Pylint
+    "T201", # Print statement
+]
+ignore = [
+    "E203",   # space before : (needed for how black formats slicing)
+    "E501",   # line too long (handled by formatter)
+    "PLR0913", # too many args in func def
+    "PLR0915", # too many statements
+    "PLR0912", # too many branches
+    "PLR2004", # magic value used in comparison
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = ["T201", "PLR2004"]
+
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "0.0.0"
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["template"]

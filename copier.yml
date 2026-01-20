@@ -1,0 +1,92 @@
+# Copier template configuration for Python package projects
+
+_subdirectory: template
+
+_templates_suffix: .jinja
+
+_exclude:
+  - ".git"
+  - "__pycache__"
+  - "*.pyc"
+  - ".DS_Store"
+  - ".venv"
+  - ".pytest_cache"
+  - "htmlcov"
+  - "*.egg-info"
+
+_envops:
+  block_start_string: "{%"
+  block_end_string: "%}"
+  variable_start_string: "{{"
+  variable_end_string: "}}"
+  comment_start_string: "{#"
+  comment_end_string: "#}"
+  keep_trailing_newline: true
+
+project_name:
+  type: str
+  help: "Name of the new project (e.g., 'My Awesome Package')"
+
+package_name:
+  type: str
+  help: "Python package name (e.g., 'my_awesome_package')"
+  default: "{{ project_name.lower().replace(' ', '_').replace('-', '_') }}"
+
+project_slug:
+  type: str
+  help: "Project slug for URLs and repositories (e.g., 'my-awesome-package')"
+  default: "{{ project_name.lower().replace(' ', '-').replace('_', '-') }}"
+
+version:
+  type: str
+  default: "0.1.0"
+  help: "Initial package version"
+
+description:
+  type: str
+  default: ""
+  help: "Short project description (one line)"
+
+author_name:
+  type: str
+  help: "Author or maintainer name"
+
+author_email:
+  type: str
+  help: "Author or maintainer email"
+
+license:
+  type: str
+  help: "Project license"
+  default: "MIT"
+  choices:
+    - "Apache-2.0"
+    - "MIT"
+    - "BSD-3-Clause"
+    - "GPL-3.0"
+    - "Proprietary"
+
+python_version:
+  type: str
+  help: "Minimum Python version"
+  default: "3.10"
+  choices:
+    - "3.10"
+    - "3.11"
+    - "3.12"
+    - "3.13"
+
+github_username:
+  type: str
+  help: "GitHub username or organization"
+  default: ""
+
+include_github_actions:
+  type: bool
+  help: "Include GitHub Actions CI/CD workflows?"
+  default: true
+
+include_docker:
+  type: bool
+  help: "Include Dockerfile?"
+  default: false

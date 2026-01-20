@@ -1,0 +1,19 @@
+"""Example module for {{ project_name }}."""
+
+
+def hello(name: str = "World") -> str:
+    """Return a greeting message.
+
+    Args:
+        name: The name to greet. Defaults to "World".
+
+    Returns:
+        A greeting message.
+
+    Examples:
+        >>> hello()
+        'Hello, World!'
+        >>> hello("Python")
+        'Hello, Python!'
+    """
+    return f"Hello, {name}!"

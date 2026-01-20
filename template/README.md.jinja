@@ -1,0 +1,150 @@
+# {{ project_name }}
+
+{{ description }}
+
+[![Python Version](https://img.shields.io/pypi/pyversions/{{ package_name }})](https://pypi.org/project/{{ package_name }}/)
+[![License](https://img.shields.io/github/license/{{ github_username }}/{{ project_slug }})](https://github.com/{{ github_username }}/{{ project_slug }}/blob/main/LICENSE.md)
+[![PyPI Version](https://img.shields.io/pypi/v/{{ package_name }})](https://pypi.org/project/{{ package_name }}/)
+[![codecov](https://codecov.io/gh/{{ github_username }}/{{ project_slug }}/branch/main/graph/badge.svg)](https://codecov.io/gh/{{ github_username }}/{{ project_slug }})
+
+## Features
+
+- Modern Python package structure
+- Fast development with [uv](https://github.com/astral-sh/uv)
+- Code formatting and linting with [ruff](https://github.com/astral-sh/ruff)
+- Type checking with [ty](https://github.com/astral-sh/ty)
+- Testing with [pytest](https://pytest.org/)
+- Documentation with [MkDocs](https://www.mkdocs.org/)
+- CI/CD with [GitHub Actions](https://github.com/features/actions)
+- Pre-commit hooks for code quality
+- Task automation with [just](https://github.com/casey/just)
+
+## Installation
+
+Install using pip:
+
+```bash
+pip install {{ package_name }}
+```
+
+Or using uv:
+
+```bash
+uv pip install {{ package_name }}
+```
+
+## Quick Start
+
+```python
+from {{ package_name }}.example import hello
+
+# Use the package
+greeting = hello("World")
+print(greeting)  # Output: Hello, World!
+```
+
+## Documentation
+
+Full documentation is available at [https://{{ project_slug }}.readthedocs.io/](https://{{ project_slug }}.readthedocs.io/)
+
+## Development
+
+### Prerequisites
+
+- Python {{ python_version }}+
+- [uv](https://github.com/astral-sh/uv) (recommended) or pip
+- [just](https://github.com/casey/just) (optional, for task automation)
+
+### Setup
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/{{ github_username }}/{{ project_slug }}.git
+cd {{ project_slug }}
+```
+
+2. Install dependencies:
+
+```bash
+uv sync --group dev
+```
+
+3. Install pre-commit hooks:
+
+```bash
+uv run pre-commit install
+```
+
+### Testing
+
+Run tests:
+
+```bash
+just test
+# or directly: uv run pytest
+```
+
+Run tests with coverage:
+
+```bash
+just test-cov
+# or directly: uv run pytest --cov={{ package_name }} --cov-report=html
+```
+
+Run all tests across multiple Python versions using nox:
+
+```bash
+uvx nox -s tests
+```
+
+### Linting and Formatting
+
+Format code and fix issues:
+
+```bash
+just format
+```
+
+Run linters and type checkers:
+
+```bash
+just lint
+```
+
+Run all quality checks:
+
+```bash
+just check
+# or with nox: uvx nox -s fix
+```
+
+### Documentation
+
+Build documentation:
+
+```bash
+just docs
+# or: uvx nox -s build_docs
+```
+
+Serve documentation locally:
+
+```bash
+just serve
+# or: uvx nox -s serve_docs
+```
+
+See all available commands:
+
+```bash
+just --list
+```
+
+## Contributing
+
+Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+
+## License
+
+This project is licensed under the {{ license }} License - see the [LICENSE](LICENSE) file for details.
