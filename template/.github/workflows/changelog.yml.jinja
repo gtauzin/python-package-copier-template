@@ -44,14 +44,6 @@ jobs:
 
           echo "version=${TAG_NAME}" >> $GITHUB_OUTPUT
 
-      - name: Format CHANGELOG with pre-commit
-        run: |
-          # Install and run pre-commit hooks on CHANGELOG.md
-          # This will format the file if needed; ignore errors since the file might already be formatted
-          uvx pre-commit run --files CHANGELOG.md || true
-
-          git add CHANGELOG.md
-
       - name: Create Pull Request for CHANGELOG
         uses: peter-evans/create-pull-request@v7
         with:
