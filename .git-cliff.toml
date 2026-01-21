@@ -39,7 +39,7 @@ This **{{ release_type }} release** includes {{ commits | length }} commit{%- if
 {%- set new_contributors = commits | filter(attribute="github.username") | map(attribute="github.username") | unique %}
 {%- if new_contributors | length > 0 %}
 
-### New Contributors
+### Contributors
 
 Thanks to all contributors for this release:
 {%- for contributor in new_contributors %}
