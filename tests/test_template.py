@@ -68,7 +68,8 @@ def test_generated_project_structure(copie):
     # Check GitHub workflows
     workflows_dir = result.project_dir / ".github" / "workflows"
     assert (workflows_dir / "tests.yml").is_file()
-    assert (workflows_dir / "release.yml").is_file()
+    assert (workflows_dir / "changelog.yml").is_file()
+    assert (workflows_dir / "publish-release.yml").is_file()
     assert (workflows_dir / "nightly.yml").is_file()
 
 
@@ -159,19 +160,28 @@ def test_release_workflow(copie):
     """Test that release workflow includes changelog automation."""
     result = copie.copy()
 
-    release_workflow = result.project_dir / ".github" / "workflows" / "release.yml"
-    assert release_workflow.is_file()
+    # Check changelog.yml workflow
+    changelog_workflow = result.project_dir / ".github" / "workflows" / "changelog.yml"
+    assert changelog_workflow.is_file()
 
-    content = release_workflow.read_text()
+    changelog_content = changelog_workflow.read_text()
 
     # Check for git-cliff
-    assert "git-cliff" in content, "git-cliff not found in release workflow"
+    assert "git-cliff" in changelog_content, "git-cliff not found in changelog workflow"
 
     # Check for changelog job
-    assert "changelog" in content.lower(), "changelog job not found in release workflow"
+    assert "changelog" in changelog_content.lower(), "changelog job not found in changelog workflow"
+
+    # Check publish-release.yml workflow
+    release_workflow = result.project_dir / ".github" / "workflows" / "publish-release.yml"
+    assert release_workflow.is_file()
+
+    release_content = release_workflow.read_text()
 
     # Check for GitHub release creation
-    assert "gh release create" in content or "github-release" in content.lower(), "GitHub release creation not found"
+    assert "gh release create" in release_content or "github-release" in release_content.lower(), (
+        "GitHub release creation not found"
+    )
 
 
 def test_commitizen_configuration(copie):

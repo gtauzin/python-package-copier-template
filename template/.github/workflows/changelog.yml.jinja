@@ -1,4 +1,4 @@
-{% if include_github_actions %}name: Build and release package
+{% if include_github_actions %}name: Build and create changelog PR
 
 on:
   push:
@@ -43,6 +43,11 @@ jobs:
           echo "EOF" >> $GITHUB_OUTPUT
 
           echo "version=${TAG_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Format CHANGELOG with pre-commit
+        run: |
+          # Install and run pre-commit hooks on CHANGELOG.md
+          uvx pre-commit run --files CHANGELOG.md || true
 
       - name: Create Pull Request for CHANGELOG
         uses: peter-evans/create-pull-request@v7
@@ -117,48 +122,4 @@ jobs:
         with:
           attestations: true
           verify-metadata: false
-
-  github-release:
-    name: Create GitHub Release
-    needs:
-      - changelog
-      - pypi-publish
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Download all the dists
-        uses: actions/download-artifact@v4
-        with:
-          name: {% raw %}${{ env.dists-artifact-name }}{% endraw %}
-          path: dist/
-
-      - name: Install git-cliff
-        uses: taiki-e/install-action@v2
-        with:
-          tool: git-cliff
-
-      - name: Generate release notes
-        id: release_notes
-        run: |
-          TAG_NAME="${GITHUB_REF#refs/tags/}"
-          RELEASE_NOTES=$(git-cliff --config .git-cliff.toml --tag "$TAG_NAME" --unreleased --strip header)
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
-        run: |
-          TAG_NAME="${GITHUB_REF#refs/tags/}"
-          gh release create "$TAG_NAME" \
-            --title "$TAG_NAME" \
-            --notes "{% raw %}${{ steps.release_notes.outputs.notes }}{% endraw %}" \
-            dist/*
 {% endif %}
