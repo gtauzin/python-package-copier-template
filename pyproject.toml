@@ -10,20 +10,30 @@ readme = "README.md"
 requires-python = ">=3.10"
 
 [dependency-groups]
-test = [
-    "pytest>=8.3.0",
-    "pytest-cov>=7.0.0",
-    "pytest-mock>=3.14.0",
-    "copier>=9.11.0",
+dev = [
+    {include-group = "checks"},
+    {include-group = "docs"},
+    {include-group = "examples"},
+]
+checks = [
+    "pytest>=8.3",
+    "pytest-cov>=7.0",
+    "pytest-mock>=3.14",
+    "covdefaults>=2.3",
+    "ruff>=0.8.0",
+    "ty>=0.0.12",
+    "nox>=2024.3.2",
+    "pre-commit>=4.0.0",
 ]
 docs = [
     "mkdocs>=1.6.0",
-    "mkdocs-material>=9.7.0",
-    "mkdocs-autorefs>=1.0.0",
+    "mkdocs-material>=9.7",
+    "mkdocstrings[python]>=0.26.0",
 ]
 fix = [
   "pre-commit-uv>=4.1",
 ]
+examples = []
 
 [tool.hatch.version]
 source = "vcs"
