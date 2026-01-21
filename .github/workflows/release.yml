@@ -16,7 +16,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Install git-cliff
         uses: taiki-e/install-action@v2
@@ -45,7 +44,7 @@ jobs:
       - name: Create Pull Request for CHANGELOG
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.RELEASE_AUTOMATION_TOKEN }}
           commit-message: "chore(release): update CHANGELOG.md for ${{ steps.changelog.outputs.version }}"
           title: "chore(release): update CHANGELOG.md for ${{ steps.changelog.outputs.version }}"
           body: |
