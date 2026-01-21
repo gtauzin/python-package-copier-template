@@ -53,6 +53,8 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.RELEASE_AUTOMATION_TOKEN }}
+          add-paths: |
+            CHANGELOG.md
           commit-message: "chore(release): update CHANGELOG.md for ${{ steps.changelog.outputs.version }}"
           title: "chore(release): update CHANGELOG.md for ${{ steps.changelog.outputs.version }}"
           body: |
