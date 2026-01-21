@@ -126,9 +126,12 @@ Releases are automated via GitHub Actions. Here's how it works:
 
 3. **GitHub Actions automatically**:
    - Generates the changelog using [git-cliff](https://git-cliff.org/)
-   - Updates `CHANGELOG.md` with the new version
-   - Commits `CHANGELOG.md` back to the main branch
+   - Creates a **Pull Request** with the updated `CHANGELOG.md`
    - Creates a GitHub Release with auto-generated release notes
+
+4. **Manual step**:
+   - Review and merge the CHANGELOG PR to update the main branch
+   - The PR is automatically labeled with `changelog` and `automated`
 
 ### Version Numbering
 
