@@ -21,12 +21,14 @@ This **minor release** includes 13 commits.
 - Use PR instead of direct push for CHANGELOG updates  ([#8](https://github.com/gtauzin/python-package-copier-template/pull/8), [#9](https://github.com/gtauzin/python-package-copier-template/pull/9), [#10](https://github.com/gtauzin/python-package-copier-template/pull/10), [#11](https://github.com/gtauzin/python-package-copier-template/pull/11)) by @gtauzin
 - Create GitHub Release after changelog PR is merged  ([#13](https://github.com/gtauzin/python-package-copier-template/pull/13), [#15](https://github.com/gtauzin/python-package-copier-template/pull/15), [#17](https://github.com/gtauzin/python-package-copier-template/pull/17), [#19](https://github.com/gtauzin/python-package-copier-template/pull/19), [#23](https://github.com/gtauzin/python-package-copier-template/pull/23)) by @gtauzin
 
-### New Contributors
+### Contributors
 
 Thanks to all contributors for this release:
 - @gtauzin
 
 ## [0.1.0] - 2026-01-20
+
+This **minor release** includes 1 commit.
 
 ### Added
 - Modern Python package template using Copier
@@ -43,3 +45,8 @@ Thanks to all contributors for this release:
 - Multiple license options (MIT, Apache-2.0, BSD-3-Clause, GPL-3.0, Proprietary)
 - Example code and tests
 - Full documentation structure
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
