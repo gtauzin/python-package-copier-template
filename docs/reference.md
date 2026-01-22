@@ -33,7 +33,9 @@ my-package/
 │   │   └── config.yml
 │   ├── workflows/
 │   │   ├── tests.yml
-│   │   ├── release.yml
+│   │   ├── pr-title.yml
+│   │   ├── changelog.yml
+│   │   ├── publish-release.yml
 │   │   └── nightly.yml
 │   ├── dependabot.yml
 │   └── pull_request_template.md
@@ -75,6 +77,14 @@ Runs on every push and pull request:
 - Matrix of 15 combinations
 - **Uploads coverage to Codecov** (requires `CODECOV_TOKEN` secret)
 - **Uploads test results to Codecov**
+
+### pr-title.yml - Pull Request Title Validation
+
+Runs on pull requests to main:
+- Validates PR title follows [Conventional Commits](https://www.conventionalcommits.org/) format
+- Required types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+- Ensures consistency with changelog generation (git-cliff)
+- Helps maintain clean commit history
 
 ### changelog.yml - Automated Changelog
 

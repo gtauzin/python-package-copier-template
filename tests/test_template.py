@@ -167,6 +167,16 @@ def test_github_workflows(copie):
     # Check for ty
     assert "ty" in content, "ty not found in tests workflow"
 
+    # Check PR title validation workflow
+    pr_title_workflow = result.project_dir / ".github" / "workflows" / "pr-title.yml"
+    assert pr_title_workflow.is_file(), "PR title validation workflow not found"
+
+    pr_title_content = pr_title_workflow.read_text()
+    assert "amannn/action-semantic-pull-request" in pr_title_content
+    assert "feat" in pr_title_content
+    assert "fix" in pr_title_content
+    assert "docs" in pr_title_content
+
 
 def test_release_workflow(copie):
     """Test that release workflow includes changelog automation."""
@@ -224,6 +234,11 @@ def test_git_cliff_configuration(copie):
 
     # Check for Keep a Changelog format
     assert "Keep a Changelog" in content, "Keep a Changelog format not mentioned"
+
+    # Check that chore(release) commits are skipped
+    assert 'message = "^chore\\\\(release\\\\)", skip = true' in content, (
+        "chore(release) commits should be skipped in changelog"
+    )
 
 
 def test_different_licenses(copie):
