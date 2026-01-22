@@ -42,6 +42,11 @@ jobs:
         run: |
           VERSION="{% raw %}${{ steps.find_tag.outputs.version }}{% endraw %}"
 
+          # Debug: Show what we're working with
+          echo "Looking for version: $VERSION"
+          echo "First 100 lines of CHANGELOG.md:"
+          head -n 100 CHANGELOG.md
+
           # Extract the section for this version from CHANGELOG.md
           # This uses awk to get content between the version header and the next version header
           RELEASE_NOTES=$(awk -v ver="$VERSION" '
@@ -53,7 +58,14 @@ jobs:
               }
             }
             found {print}
-          ' CHANGELOG.md | sed '/^$/d' | head -c 50000)
+          ' CHANGELOG.md | head -c 50000)
+
+          if [ -z "$RELEASE_NOTES" ]; then
+            echo "ERROR: No release notes found for version $VERSION"
+            echo "Available versions in CHANGELOG.md:"
+            grep "^## \[" CHANGELOG.md
+            exit 1
+          fi
 
           echo "notes<<EOF" >> $GITHUB_OUTPUT
           echo "$RELEASE_NOTES" >> $GITHUB_OUTPUT
