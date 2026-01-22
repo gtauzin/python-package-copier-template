@@ -4,7 +4,7 @@
 
 This is a **Copier template project** that generates modern Python packages. You're working on the *template itself*, not a generated project. The `template/` directory contains Jinja2 templates (`.jinja` files) that copier renders when creating new Python packages.
 
-**Key distinction**: 
+**Key distinction**:
 - Changes to root files (`noxfile.py`, `pyproject.toml`) affect this template repository
 - Changes to `template/*.jinja` files affect generated projects
 - Root `pyproject.toml` only needs test/docs dependencies; generated projects in `template/pyproject.toml.jinja` define the full Python package setup

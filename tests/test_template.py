@@ -88,7 +88,7 @@ def test_generated_pyproject_uses_correct_tools(copie):
     assert "pytest" in content, "pytest not found in pyproject.toml"
     assert "mkdocs" in content, "mkdocs not found in pyproject.toml"
     assert "pre-commit-uv" in content, "pre-commit-uv not found in pyproject.toml"
-    
+
     # Check for dependency groups structure
     assert "[dependency-groups]" in content, "dependency-groups not found in pyproject.toml"
     assert "tests" in content, "tests dependency group not found"
@@ -97,7 +97,7 @@ def test_generated_pyproject_uses_correct_tools(copie):
     assert "fix" in content, "fix dependency group not found"
     assert "examples" in content, "examples dependency group not found"
     assert "dev" in content, "dev dependency group not found"
-    
+
     # nox should NOT be in pyproject.toml - it's installed globally via uvx
     assert "nox" not in content, "nox should not be in pyproject.toml (install globally with uvx)"
 
