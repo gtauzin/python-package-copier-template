@@ -8,15 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - 2026-01-22
 
-This **minor release** includes 4 commits.
+This **minor release** includes 7 commits.
 
 
 ### Features
+- Add dependency groups for dev, checks, and examples  ([#28](https://github.com/gtauzin/python-package-copier-template/pull/28)) by @gtauzin
 - Add PR title validation and improve git-cliff configuration  ([#33](https://github.com/gtauzin/python-package-copier-template/pull/33)) by @gtauzin
 
 ### Bug Fixes
 - Extract release notes from merged CHANGELOG.md instead of regenerating  ([#25](https://github.com/gtauzin/python-package-copier-template/pull/25)) by @gtauzin
+- Remove license classifier from template  ([#26](https://github.com/gtauzin/python-package-copier-template/pull/26)) by @gtauzin
 - Update lint command to check types correctly  ([#27](https://github.com/gtauzin/python-package-copier-template/pull/27)) by @gtauzin
+- Exclude _version.py from ruff and coverage reports  ([#29](https://github.com/gtauzin/python-package-copier-template/pull/29)) by @gtauzi
 
 ### Documentation
 - Document automated release workflow with git-cliff and changelog PR  ([#30](https://github.com/gtauzin/python-package-copier-template/pull/30)) by @gtauzin
