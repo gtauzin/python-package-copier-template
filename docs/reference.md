@@ -76,12 +76,28 @@ Runs on every push and pull request:
 - **Uploads coverage to Codecov** (requires `CODECOV_TOKEN` secret)
 - **Uploads test results to Codecov**
 
-### release.yml - Automated Publishing
+### changelog.yml - Automated Changelog
 
 Triggers on version tags (`v*.*.*`):
-- Builds wheel and sdist packages
-- Validates distributions
-- Publishes to PyPI automatically (requires `PYPI_API_TOKEN` secret)
+- Generates changelog from conventional commits using git-cliff
+- Creates a **Pull Request** with updated `CHANGELOG.md`
+- Runs pre-commit hooks on generated changelog
+- Builds and validates package distributions
+- Publishes to PyPI automatically (requires trusted publishing or `PYPI_API_TOKEN` secret)
+- **Requires** `RELEASE_AUTOMATION_TOKEN` secret for PR creation
+
+### publish-release.yml - Automated GitHub Releases
+
+Triggers when changelog PR is merged:
+- Detects merged PRs with the `changelog` label
+- Extracts version from PR title
+- Downloads build artifacts from changelog workflow
+- Creates a **GitHub Release** with:
+  - Release notes extracted from `CHANGELOG.md`
+  - Package distributions attached (wheel + sdist)
+  - Automatic tagging
+
+**Complete release flow**: Tag push → Changelog PR → PyPI publish → Merge PR → GitHub Release
 
 ### nightly.yml - Proactive Monitoring
 

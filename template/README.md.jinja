@@ -141,6 +141,35 @@ See all available commands:
 just --list
 ```
 
+## Release Process
+
+This project uses an **automated release workflow** powered by GitHub Actions, git-cliff, and conventional commits:
+
+### How It Works
+
+1. **Push a version tag** (e.g., `v1.2.3`):
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+
+2. **Automated workflow triggers**:
+   - 🔨 **Builds** package distributions (wheel + sdist)
+   - 📝 **Generates** changelog from conventional commits using [git-cliff](https://git-cliff.org/)
+   - 🔀 **Creates** a Pull Request with the updated `CHANGELOG.md`
+   - 📦 **Publishes** package to PyPI automatically
+   - 🚀 **Creates** a GitHub Release with release notes
+
+3. **Review and merge** the automated changelog PR to finalize the release on main
+
+The workflow uses **conventional commits** to automatically categorize changes:
+- `feat:` → Added section
+- `fix:` → Fixed section
+- `docs:` → Documentation section
+- `perf:` → Performance section
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for details on commit message format and the full release process.
+
 ## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.

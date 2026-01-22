@@ -28,10 +28,11 @@ uv run pytest
 - Type checking with [ty](https://github.com/astral-sh/ty)
 - Testing with [pytest](https://pytest.org/) and coverage via Codecov
 - Documentation with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/)
-- CI/CD with GitHub Actions
+- Task automation with [nox](https://nox.thea.codes/) and [just](https://github.com/casey/just)
+- CI/CD with [GitHub Actions](https://github.com/features/actions)
+- Automated tag-based releases with [git-cliff](https://git-cliff.org/) changelog generation, automatic PyPI publishing, and GitHub release creation via changelog PR workflow
 - Pre-commit hooks for code quality
-- Modern PEP 517/518 build with hatchling
-- Task automation with nox and just
+- Modern PEP 517/518 build with [hatchling](https://hatch.pypa.io/latest/)
 
 ## Template Development
 

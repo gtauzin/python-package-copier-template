@@ -14,6 +14,7 @@ This Copier template creates Python packages with best practices, modern tooling
 - **Testing**: [pytest](https://pytest.org/) with coverage reporting via covdefaults
 - **Documentation**: [MkDocs](https://www.mkdocs.org/) with Material theme and ReadTheDocs integration
 - **CI/CD**: GitHub Actions for automated testing, linting, and PyPI releases
+- **Automated releases**: Tag-based workflow with [git-cliff](https://git-cliff.org/) changelog generation, automatic PyPI publishing, and GitHub release creation with changelog PR workflow
 - **Coverage reporting**: Codecov integration for test coverage tracking
 - **Pre-commit hooks**: Automated code quality checks on every commit
 - **Build system**: Modern PEP 517/518 compliant build with hatchling + hatch-vcs
