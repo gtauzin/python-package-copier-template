@@ -158,3 +158,57 @@ ReadTheDocs configuration:
 - Automatic documentation builds
 - Version management
 - uv for fast installs
+
+## Updating Projects Created from This Template
+
+Projects generated from this template include a `.copier-answers.yml` file that tracks the template version and source. This enables you to pull in template updates as they are released.
+
+### Update Command
+
+To update your generated project with the latest template changes:
+
+```bash
+copier update --trust
+```
+
+Run this from your project's root directory.
+
+### What Gets Updated
+
+Copier will:
+1. Pull the latest template changes from `gh:gtauzin/python-package-copier-template`
+2. Show you a diff of changes
+3. Prompt for any new configuration questions
+4. Apply updates while preserving your modifications
+
+### Handling Conflicts
+
+If you've modified files that the template also changed:
+- Copier will show you conflicts
+- Use `--conflict` flag to control merge strategy:
+  - `copier update --trust --conflict inline` - Inline conflict markers (default)
+  - `copier update --trust --conflict rej` - Create `.rej` files for conflicts
+
+### Version Pinning
+
+To update to a specific template version:
+
+```bash
+copier update --trust --vcs-ref=v1.2.0
+```
+
+Or update to a specific commit:
+
+```bash
+copier update --trust --vcs-ref=abc123
+```
+
+### Checking Current Version
+
+View your current template version:
+
+```bash
+cat .copier-answers.yml
+```
+
+The `_commit` field shows the template commit your project was generated from.
