@@ -39,7 +39,6 @@ Fixes #
 - [ ] I have updated the documentation accordingly
 - [ ] I have added tests to cover my changes
 - [ ] All new and existing tests passed
-- [ ] I have updated the CHANGELOG.md with my changes
 - [ ] My changes generate no new warnings
 - [ ] I have checked that my changes don't break the template generation
 
