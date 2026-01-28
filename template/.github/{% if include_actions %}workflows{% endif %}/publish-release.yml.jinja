@@ -1,4 +1,4 @@
-{% if include_github_actions %}name: Publish GitHub Release
+name: Publish GitHub Release
 
 on:
   pull_request:
@@ -88,4 +88,3 @@ jobs:
             --title "$VERSION" \
             --notes "{% raw %}${{ steps.release_notes.outputs.notes }}{% endraw %}" \
             dist/*
-{% endif %}

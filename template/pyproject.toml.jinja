@@ -10,12 +10,12 @@ authors = [
     { name = "{{ author_name }}", email = "{{ author_email }}" }
 ]
 license = { text = "{{ license }}" }
-requires-python = ">={{ python_version }}"
+requires-python = ">={{ min_python_version }}"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: {{ python_version }}",
+    "Programming Language :: Python :: {{ min_python_version }}",
 ]
 dependencies = [
 
@@ -27,7 +27,8 @@ dev = [
     {include-group = "lint"},
     {include-group = "docs"},
     {include-group = "fix"},
-    {include-group = "examples"},
+{% if include_examples %}    {include-group = "examples"},
+{% endif %}
 ]
 tests = [
     "pytest>=8.3",
@@ -43,11 +44,18 @@ docs = [
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.7",
     "mkdocstrings[python]>=0.26.0",
+{% if include_examples %}    "mkdocs-marimo @ git+https://github.com/marimo-team/mkdocs-marimo.git@main",
+    "pymdown-extensions>=10.20.1",
+{% endif %}
 ]
 fix = [
   "pre-commit-uv>=4.1",
 ]
-examples = []
+{% if include_examples %}examples = [
+    "marimo>=0.19.0",
+    "numpy>=2.3.0", # required by plotly
+    "plotly>=6.5.0",
+]{% endif %}
 
 [project.urls]
 Homepage = "https://github.com/{{ github_username }}/{{ project_slug }}"
@@ -64,13 +72,14 @@ packages = ["src/{{ package_name }}"]
 
 [tool.hatch.version]
 source = "vcs"
+fallback-version = "0.0.0"
 
 [tool.hatch.build.hooks.vcs]
 version-file = "src/{{ package_name }}/_version.py"
 
 [tool.ruff]
 line-length = 120
-target-version = "py{{ python_version.replace('.', '') }}"
+target-version = "py{{ min_python_version.replace('.', '') }}"
 src = ["src", "tests"]
 show-fixes = true
 exclude = ["src/{{ package_name }}/_version.py"]
@@ -157,7 +166,7 @@ include_namespace_packages = true
 
 [tool.coverage.html]
 show_contexts = true
-{% if include_github_actions %}
+{% if include_actions %}
 
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -169,5 +178,5 @@ tag_format = "v$version"
 {% endif %}
 
 [tool.ty]
-python_version = "{{ python_version }}"
+python_version = "{{ min_python_version }}"
 strict = true

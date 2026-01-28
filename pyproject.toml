@@ -7,7 +7,7 @@ name = "python-package-copier-template"
 dynamic = ["version"]
 description = "A modern Python package template using copier"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 
 [dependency-groups]
 dev = [

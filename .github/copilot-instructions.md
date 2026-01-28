@@ -24,7 +24,7 @@ Variables defined in `copier.yml` are used in `.jinja` files:
 - `{{ package_name }}`: Python import name (underscores)
 - `{{ project_slug }}`: Repository/URL name (hyphens)
 - `{{ project_name }}`: Human-readable display name
-- `{{ python_version }}`: Minimum Python version (e.g., "3.10")
+- `{{ python_version }}`: Minimum Python version (e.g., "3.11")
 - `{{ author_name }}`, `{{ author_email }}`: Maintainer info
 - `{{ github_username }}`: GitHub org/user for URLs
 
@@ -139,14 +139,14 @@ When adding files to generated projects:
 - Document in `docs/structure.md` (if exists)
 
 ### Version Constraints
-- Template itself: `requires-python = ">=3.10"` (in root `pyproject.toml`)
+- Template itself: `requires-python = ">=3.11"` (in root `pyproject.toml`)
 - Generated projects: Uses `{{ python_version }}` from copier prompt
-- Generated `noxfile.py.jinja` tests against multiple Python versions (3.10-3.14)
+- Generated `noxfile.py.jinja` tests against multiple Python versions (3.11-3.14)
 
 ## Integration Points
 
 ### GitHub Actions
-Generated projects include workflows (if `include_github_actions: true`):
+Generated projects include workflows (if `include_actions: true`):
 - `tests.yml`: Run nox tests on push/PR with matrix strategy across Python versions
 - `publish-release.yml`: Build and publish to PyPI, create GitHub release on tag push
 - `changelog.yml`: Automated changelog generation with git-cliff on version tags

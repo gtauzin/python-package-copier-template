@@ -55,6 +55,11 @@ author_email:
   type: str
   help: "Author or maintainer email"
 
+github_username:
+  type: str
+  help: "GitHub username or organization"
+  default: ""
+
 license:
   type: str
   help: "Project license"
@@ -66,22 +71,22 @@ license:
     - "GPL-3.0"
     - "Proprietary"
 
-python_version:
+min_python_version:
   type: str
   help: "Minimum Python version"
-  default: "3.10"
+  default: "3.11"
   choices:
-    - "3.10"
     - "3.11"
     - "3.12"
     - "3.13"
+    - "3.14"
 
-github_username:
-  type: str
-  help: "GitHub username or organization"
-  default: ""
-
-include_github_actions:
+include_actions:
   type: bool
   help: "Include GitHub Actions CI/CD workflows?"
+  default: true
+
+include_examples:
+  type: bool
+  help: "Include examples/ directory with marimo notebooks?"
   default: true

@@ -12,7 +12,7 @@ nox.options.default_venv_backend = "uv|virtualenv"
 nox.options.sessions = ["fix", "tests", "serve_docs"]
 
 
-@nox.session(python=["3.10", "3.11", "3.12", "3.13", "3.14"], venv_backend="uv")
+@nox.session(python=["3.11", "3.12", "3.13", "3.14"], venv_backend="uv")
 def tests(session: nox.Session) -> None:
     """Run the tests with pytest."""
     # Install dependencies

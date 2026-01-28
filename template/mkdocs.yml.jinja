@@ -39,47 +39,81 @@ theme:
     - content.code.copy
 
 markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - meta
+  - sane_lists
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji
   - pymdownx.highlight:
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
   - pymdownx.snippets
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - class: mermaid
+          name: mermaid
   - pymdownx.tabbed:
       alternate_style: true
-  - admonition
-  - pymdownx.details
-  - pymdownx.arithmatex:
-      generic: true
-  - footnotes
-  - pymdownx.critic
-  - pymdownx.caret
-  - pymdownx.keys
-  - pymdownx.mark
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - pymdownx.tilde
-  - attr_list
-  - md_in_html
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
 
 plugins:
   - search
+  - tags
   - mkdocstrings:
       handlers:
         python:
           paths: [src]
           options:
-            docstring_style: google
+            docstring_style: numpy
             show_source: true
             show_root_heading: true
             show_symbol_type_heading: true
             show_symbol_type_toc: true
             members_order: source
+{% if include_examples %}  - marimo:
+      enabled: true
+      display_code: false
+      display_output: true
+      is_reactive: true
+{% endif %}
 
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
   - User Guide: user-guide.md
-  - API Reference: api-reference.md
+{% if include_examples %}  - Examples: examples.md
+{% endif %}  - API Reference: api-reference.md
   - Contributing: contributing.md
 
 extra:

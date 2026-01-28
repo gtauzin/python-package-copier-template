@@ -1,4 +1,4 @@
-{% if include_github_actions %}name: Tests
+name: Tests
 
 on:
   push:
@@ -19,7 +19,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["{{ python_version }}", "3.11", "3.12", "3.13", "3.14"]
+        python-version: [{%- set versions = ["3.11", "3.12", "3.13", "3.14"] -%}
+          {%- for v in versions if v >= min_python_version -%}
+            "{{ v }}"{{ ", " if not loop.last else "" }}
+          {%- endfor -%}]
 
     steps:
       - name: Checkout code
@@ -43,15 +46,15 @@ jobs:
         run: uv python install {% raw %}${{ matrix.python-version }}{% endraw %}
 
       - name: Run tests with coverage
-        if: {% raw %}matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ python_version }}{% raw %}'{% endraw %}
+        if: {% raw %}matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}'{% endraw %}
         run: nox -s tests_coverage --python {% raw %}${{ matrix.python-version }}{% endraw %}
 
       - name: Run tests
-        if: {% raw %}!(matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ python_version }}{% raw %}'){% endraw %}
+        if: {% raw %}!(matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}'){% endraw %}
         run: nox -s tests --python {% raw %}${{ matrix.python-version }}{% endraw %}
 
       - name: Upload test results to Codecov
-        if: {% raw %}${{ !cancelled() }} && matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ python_version }}{% raw %}'{% endraw %}
+        if: {% raw %}${{ !cancelled() }} && matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}'{% endraw %}
         uses: codecov/test-results-action@v1
         with:
           token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
@@ -59,7 +62,7 @@ jobs:
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v5
-        if: {% raw %}matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ python_version }}{% raw %}'{% endraw %}
+        if: {% raw %}matrix.os == 'ubuntu-latest' && matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}'{% endraw %}
         with:
           token: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
           files: {% raw %}'${{ github.workspace }}/coverage.${{ matrix.python-version }}.xml'{% endraw %}
@@ -107,8 +110,32 @@ jobs:
         run: uv tool install nox
 
       - name: Set up Python
-        run: uv python install {{ python_version }}
+        run: uv python install {{ min_python_version }}
 
       - name: Run docstring tests
         run: nox -s doctest
+{% if include_examples %}
+
+  examples:
+    name: Run example notebooks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Install nox
+        run: uv tool install nox
+
+      - name: Set up Python
+        run: uv python install {{ min_python_version }}
+
+      - name: Run example notebooks
+        run: nox -s run_examples
 {% endif %}

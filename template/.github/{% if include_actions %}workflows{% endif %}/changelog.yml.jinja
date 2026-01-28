@@ -1,4 +1,4 @@
-{% if include_github_actions %}name: Build and create changelog PR
+name: Build and create changelog PR
 
 on:
   push:
@@ -95,7 +95,7 @@ jobs:
           github-token: {% raw %}${{ secrets.GITHUB_TOKEN }}{% endraw %}
 
       - name: Build package
-        run: uv build --python {{ python_version }} --python-preference only-managed --sdist --wheel . --out-dir dist
+        run: uv build --python {{ min_python_version }} --python-preference only-managed --sdist --wheel . --out-dir dist
 
       - name: Check distributions
         run: uvx twine check dist/*
@@ -129,4 +129,3 @@ jobs:
         with:
           attestations: true
           verify-metadata: false
-{% endif %}

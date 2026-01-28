@@ -19,6 +19,12 @@ test-cov:
 # Run docstring examples
 doctest:
     uv run pytest --doctest-modules --doctest-continue-on-failure src/{{ package_name }}
+{% if include_examples %}
+
+# Run marimo example notebook interactively
+example:
+    uv run marimo edit examples/hello.py
+{% endif %}
 
 # Run linters and type checkers
 lint:

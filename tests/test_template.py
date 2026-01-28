@@ -18,6 +18,7 @@ def test_template_creates_project(copie):
         "tests",
         ".github",
         ".github/workflows",
+        "examples",
     ]
 
     result = copie.copy()
@@ -292,3 +293,186 @@ def test_doctest_configuration(copie):
     example_py = (result.project_dir / "src" / "test_project" / "example.py").read_text()
     assert "Examples:" in example_py
     assert ">>>" in example_py
+
+
+def test_examples_directory_when_enabled(copie):
+    """Test that examples directory is created when include_examples=True."""
+    result = copie.copy(
+        extra_answers={
+            "include_examples": True,
+        },
+    )
+
+    assert result.exit_code == 0
+    examples_dir = result.project_dir / "examples"
+    assert examples_dir.is_dir(), "examples/ directory not created"
+
+    # Check for notebook file
+    hello_notebook = examples_dir / "hello.py"
+    assert hello_notebook.is_file(), "examples/hello.py not created"
+
+    # Check notebook content
+    notebook_content = hello_notebook.read_text()
+    assert "import marimo" in notebook_content
+    assert "app = marimo.App" in notebook_content
+    assert "plotly" in notebook_content
+    assert "num_points" in notebook_content
+
+    # Check marimo in dependencies
+    pyproject_content = (result.project_dir / "pyproject.toml").read_text()
+    assert "marimo" in pyproject_content
+    assert "plotly" in pyproject_content
+    assert "mkdocs-marimo" in pyproject_content
+
+    # Check noxfile has run_examples session
+    noxfile_content = (result.project_dir / "noxfile.py").read_text()
+    assert "def run_examples(session:" in noxfile_content
+    assert "examples/hello.py" in noxfile_content
+
+    # Check justfile has example command
+    justfile_content = (result.project_dir / "justfile").read_text()
+    assert "example:" in justfile_content
+    assert "marimo edit" in justfile_content
+
+    # Check examples.md exists
+    examples_md = result.project_dir / "docs" / "examples.md"
+    assert examples_md.is_file(), "docs/examples.md not created"
+
+    # Check mkdocs.yml includes examples in nav
+    mkdocs_content = (result.project_dir / "mkdocs.yml").read_text()
+    assert "Examples: examples.md" in mkdocs_content
+
+    # Check GitHub workflow includes examples job
+    tests_workflow = result.project_dir / ".github" / "workflows" / "tests.yml"
+    workflow_content = tests_workflow.read_text()
+    assert "examples:" in workflow_content
+    assert "nox -s run_examples" in workflow_content
+
+
+def test_examples_directory_when_disabled(copie):
+    """Test that examples directory is NOT created when include_examples=False."""
+    result = copie.copy(
+        extra_answers={
+            "include_examples": False,
+        },
+    )
+
+    assert result.exit_code == 0
+
+    # Examples directory should not exist or be empty when disabled
+    examples_dir = result.project_dir / "examples"
+    assert not examples_dir.is_dir(), "examples/ directory created"
+
+    # Marimo should not be in examples dependencies
+    pyproject_content = (result.project_dir / "pyproject.toml").read_text()
+    # examples group should not exist or be empty
+    assert (
+        "examples = [" not in pyproject_content
+        or "examples = []" in pyproject_content
+        or "examples = [\n]" in pyproject_content
+    )
+    # marimo should not be in dependencies
+    assert "marimo" not in pyproject_content
+    assert "plotly" not in pyproject_content
+    # mkdocs-marimo should not be in docs dependencies
+    assert "mkdocs-marimo" not in pyproject_content
+
+    # Check noxfile doesn't have run_examples session
+    noxfile_content = (result.project_dir / "noxfile.py").read_text()
+    assert "def run_examples(session:" not in noxfile_content
+
+    # Check justfile doesn't have example command
+    justfile_content = (result.project_dir / "justfile").read_text()
+    # Should not have the example command, but might have other content
+    lines = justfile_content.split("\n")
+    example_command_lines = [line for line in lines if line.strip().startswith("example:")]
+    assert len(example_command_lines) == 0, "example command should not exist"
+
+    # Check examples.md doesn't exist or is empty
+    examples_md = result.project_dir / "docs" / "examples.md"
+    if examples_md.exists():
+        content = examples_md.read_text().strip()
+        assert content == "", (
+            f"docs/examples.md should be empty when examples are disabled, but contains: {content[:100]}"
+        )
+
+    # Check mkdocs.yml doesn't include examples in nav
+    mkdocs_content = (result.project_dir / "mkdocs.yml").read_text()
+    assert "Examples: examples.md" not in mkdocs_content
+
+    # Check GitHub workflow doesn't include examples job
+    tests_workflow = result.project_dir / ".github" / "workflows" / "tests.yml"
+    workflow_content = tests_workflow.read_text()
+    assert "run_examples" not in workflow_content
+
+
+def test_github_actions_when_enabled(copie):
+    """Test that GitHub Actions workflows are created when include_actions=True."""
+    result = copie.copy(
+        extra_answers={
+            "include_actions": True,
+        },
+    )
+
+    assert result.exit_code == 0
+
+    # Check .github directory exists
+    github_dir = result.project_dir / ".github"
+    assert github_dir.is_dir(), ".github/ directory not created"
+
+    # Check workflows directory exists
+    workflows_dir = github_dir / "workflows"
+    assert workflows_dir.is_dir(), ".github/workflows/ directory not created"
+
+    # Check for required workflow files
+    assert (workflows_dir / "tests.yml").is_file(), "tests.yml workflow not created"
+    assert (workflows_dir / "publish-release.yml").is_file(), "publish-release.yml workflow not created"
+    assert (workflows_dir / "changelog.yml").is_file(), "changelog.yml workflow not created"
+    assert (workflows_dir / "pr-title.yml").is_file(), "pr-title.yml workflow not created"
+    assert (workflows_dir / "nightly.yml").is_file(), "nightly.yml workflow not created"
+
+    # Check for GitHub configuration files
+    assert (github_dir / "dependabot.yml").is_file(), "dependabot.yml not created"
+    assert (github_dir / "PULL_REQUEST_TEMPLATE.md").is_file(), "PR template not created"
+
+    # Check ISSUE_TEMPLATE directory
+    issue_template_dir = github_dir / "ISSUE_TEMPLATE"
+    assert issue_template_dir.is_dir(), "ISSUE_TEMPLATE directory not created"
+    assert (issue_template_dir / "bug_report.yml").is_file(), "bug_report.yml not created"
+    assert (issue_template_dir / "feature_request.yml").is_file(), "feature_request.yml not created"
+    assert (issue_template_dir / "config.yml").is_file(), "issue template config.yml not created"
+
+    # Check workflow content uses uv
+    tests_workflow_content = (workflows_dir / "tests.yml").read_text()
+    assert "astral-sh/setup-uv" in tests_workflow_content, "uv not used in tests workflow"
+
+    # Check git-cliff.toml exists (should be included with workflows)
+    assert (result.project_dir / ".git-cliff.toml").is_file(), ".git-cliff.toml not created"
+
+
+def test_github_actions_when_disabled(copie):
+    """Test that GitHub Actions workflows are NOT created when include_actions=False."""
+    result = copie.copy(
+        extra_answers={
+            "include_actions": False,
+        },
+    )
+
+    assert result.exit_code == 0
+
+    # .github directory may exist but workflows should not
+    github_dir = result.project_dir / ".github"
+    if github_dir.is_dir():
+        # Check that workflows directory doesn't exist or is empty
+        workflows_dir = github_dir / "workflows"
+        if workflows_dir.exists():
+            workflow_files = list(workflows_dir.glob("*.yml"))
+            assert len(workflow_files) == 0, (
+                f".github/workflows should be empty but contains: {[f.name for f in workflow_files]}"
+            )
+
+    # git-cliff.toml should not exist or be empty (only needed with workflows)
+    git_cliff = result.project_dir / ".git-cliff.toml"
+    if git_cliff.exists():
+        content = git_cliff.read_text().strip()
+        assert content == "", ".git-cliff.toml should be empty when GitHub Actions are disabled"

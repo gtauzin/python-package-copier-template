@@ -75,7 +75,7 @@ my-package/
 ### tests.yml - Continuous Integration
 
 Runs on every push and pull request:
-- Tests across Python 3.10, 3.11, 3.12, 3.13, 3.14
+- Tests across Python 3.11, 3.12, 3.13, 3.14
 - Tests on Ubuntu, Windows, and macOS
 - Matrix of 15 combinations
 - **Uploads coverage to Codecov** (requires `CODECOV_TOKEN` secret)
@@ -132,7 +132,7 @@ Central configuration containing:
 ### noxfile.py
 
 Task automation sessions:
-- `tests` - Run tests on Python 3.10-3.14
+- `tests` - Run tests on Python 3.11-3.14
 - `tests_coverage` - Run tests with coverage
 - `doctest` - Run docstring examples
 - `fix` - Auto-format and fix code issues

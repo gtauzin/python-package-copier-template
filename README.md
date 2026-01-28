@@ -1,6 +1,6 @@
 # Python Package Copier Template
 
-[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![Tests](https://github.com/gtauzin/python-package-copier-template/workflows/Tests/badge.svg)](https://github.com/gtauzin/python-package-copier-template/actions/workflows/tests.yml)
 [![Documentation](https://readthedocs.org/projects/python-package-copier-template/badge/?version=latest)](https://python-package-copier-template.readthedocs.io/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

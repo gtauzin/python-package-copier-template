@@ -27,8 +27,10 @@ class CopierTestFixture:
             "author_email": "test@example.com",
             "github_username": "testuser",
             "version": "0.1.0",
-            "python_version": "3.10",
+            "min_python_version": "3.11",
             "license": "MIT",
+            "include_actions": True,
+            "include_examples": True,
         }
 
         # Override with extra answers

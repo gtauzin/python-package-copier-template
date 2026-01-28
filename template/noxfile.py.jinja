@@ -11,8 +11,10 @@ nox.options.default_venv_backend = "uv|virtualenv"
 # Default sessions to run when nox is called without arguments
 nox.options.sessions = ["fix", "tests_coverage", "serve_docs"]
 
-# Python versions to test against
-PYTHON_VERSIONS = ["{{ python_version }}", "3.11", "3.12", "3.13", "3.14"]
+# Generate list of Python versions from minimum to 3.14
+ALL_VERSIONS = ["3.11", "3.12", "3.13", "3.14"]
+MIN_VERSION = "{{ min_python_version }}"
+PYTHON_VERSIONS = [v for v in ALL_VERSIONS if v >= MIN_VERSION]
 
 
 @nox.session(python=PYTHON_VERSIONS[0], venv_backend="uv")
@@ -115,6 +117,25 @@ def doctest(session: nox.Session) -> None:
         "src/{{ package_name }}",
         *session.posargs,
     )
+
+{% if include_examples %}
+
+@nox.session(venv_backend="uv")
+def run_examples(session: nox.Session) -> None:
+    """Run marimo notebook examples to validate they execute."""
+    # Install dependencies
+    session.run_install(
+        "uv",
+        "sync",
+        "--no-default-groups",
+        "--group",
+        "examples",
+        env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
+    )
+
+    # Run marimo notebooks as scripts (non-interactive execution)
+    session.run("python", "examples/hello.py", *session.posargs)
+{% endif %}
 
 
 @nox.session(venv_backend="uv")

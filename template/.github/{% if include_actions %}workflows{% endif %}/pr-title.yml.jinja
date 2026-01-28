@@ -1,4 +1,4 @@
-{% if include_github_actions %}name: Validate PR Title
+name: Validate PR Title
 
 on:
   pull_request:
@@ -44,4 +44,3 @@ jobs:
           ignoreLabels: |
             bot
             ignore-semantic-pull-request
-{% endif %}
