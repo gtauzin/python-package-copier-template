@@ -1,4 +1,7 @@
-# Python Package Copier Template
+![](assets/logo_dark.png#only-dark){width=800}
+![](assets/logo_light.png#only-light){width=800}
+
+# Welcome to Python Package Copier Template's Documentation
 
 A modern Python package template using [Copier](https://copier.readthedocs.io/) that gets you from zero to production-ready in minutes.
 
@@ -17,6 +20,6 @@ A modern Python package template using [Copier](https://copier.readthedocs.io/) 
 
 ## Get Started
 
-- **[Quick Start](quickstart.md)** - Create your package in 5 minutes
-- **[Reference](reference.md)** - Complete guide to all features and commands
-- **[Contributing](contributing.md)** - Help improve the template
+- **[Quick Start](pages/quickstart.md)** - Create your package in 5 minutes
+- **[Reference](pages/reference.md)** - Complete guide to all features and commands
+- **[Contributing](pages/contributing.md)** - Help improve the template

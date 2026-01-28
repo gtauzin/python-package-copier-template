@@ -1,4 +1,11 @@
-# Python Package Copier Template
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/stateful-y/python-package-copier-template/main/docs/assets/logo_light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/stateful-y/python-package-copier-template/main/docs/assets/logo_dark.png">
+    <img src="https://raw.githubusercontent.com/stateful-y/python-package-copier-template/main/docs/assets/logo_light.png" alt="python-package-copier-template">
+  </picture>
+</p>
+
 
 [![Python Version](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/downloads/)
 [![Tests](https://github.com/stateful-y/python-package-copier-template/workflows/Tests/badge.svg)](https://github.com/stateful-y/python-package-copier-template/actions/workflows/tests.yml)

@@ -1,4 +1,7 @@
-# Welcome to {{ project_name }}
+![](assets/logo_dark.png#only-dark){width=800}
+![](assets/logo_light.png#only-light){width=800}
+
+# Welcome to {{ project_name }}'s Documentation
 
 {{ description }}
 
@@ -40,10 +43,11 @@ print(result)  # Output: Hello, World!
 
 ## Next Steps
 
-- Check out the [Getting Started Guide](getting-started.md) for detailed installation instructions
-- Read the [User Guide](user-guide.md) for comprehensive documentation
-- Explore the [API Reference](api-reference.md) for detailed API documentation
-- Learn how to [contribute](contributing.md) to the project
+- Check out the [Getting Started Guide](pages/getting-started.md) for detailed installation instructions
+- Read the [User Guide](pages/user-guide.md) for comprehensive documentation
+{% if include_examples %}- Run the [Examples](pages/examples.md)
+{% endif %}- Explore the [API Reference](pages/api-reference.md) for detailed API documentation
+- Learn how to [contribute](pages/contributing.md) to the project
 
 ## Support
 

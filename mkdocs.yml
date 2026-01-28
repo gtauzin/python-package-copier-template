@@ -6,6 +6,10 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  custom_dir: docs/material/overrides
+  favicon: assets/favicon.png
+  logo: assets/logo.png
+
   features:
     - content.code.copy
     - content.code.annotate
@@ -21,13 +25,13 @@ theme:
 
   palette:
     - scheme: default
-      primary: indigo
+      primary: black
       accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: indigo
+      primary: black
       accent: indigo
       toggle:
         icon: material/brightness-4
@@ -35,7 +39,7 @@ theme:
 
 plugins:
   - search
-  - autorefs
+  - tags
 
 markdown_extensions:
   - admonition
@@ -53,6 +57,10 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - Quick Start: quickstart.md
-  - Reference: reference.md
-  - Contributing: contributing.md
+  - Quick Start: pages/quickstart.md
+  - Reference: pages/reference.md
+  - Contributing: pages/contributing.md
+
+watch:
+  - mkdocs.yml
+  - docs

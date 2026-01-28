@@ -7,11 +7,15 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  custom_dir: docs/material/overrides
+  favicon: assets/favicon.png
+  logo: assets/logo.png
+
   palette:
     # Palette toggle for light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: indigo
+      primary: black
       accent: indigo
       toggle:
         icon: material/brightness-7
@@ -19,24 +23,23 @@ theme:
     # Palette toggle for dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: indigo
+      primary: black
       accent: indigo
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
   features:
-    - navigation.instant
-    - navigation.tracking
+    - content.code.copy
+    - content.code.annotate
     - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.tracking
     - navigation.sections
     - navigation.expand
-    - navigation.indexes
     - navigation.top
     - search.suggest
     - search.highlight
-    - content.tabs.link
-    - content.code.annotation
-    - content.code.copy
+    - toc.integrate
 
 markdown_extensions:
   - admonition
@@ -110,13 +113,19 @@ plugins:
 
 nav:
   - Home: index.md
-  - Getting Started: getting-started.md
-  - User Guide: user-guide.md
-{% if include_examples %}  - Examples: examples.md
-{% endif %}  - API Reference: api-reference.md
-  - Contributing: contributing.md
+  - Getting Started: pages/getting-started.md
+  - User Guide: pages/user-guide.md
+{% if include_examples %}  - Examples: pages/examples.md
+{% endif %}  - API Reference: pages/api-reference.md
+  - Contributing: pages/contributing.md
 
 extra:
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/{{ github_username }}/{{ project_slug }}
+
+watch:
+  - mkdocs.yml
+  - docs
+{% if include_examples %}  - examples
+{% endif %}
