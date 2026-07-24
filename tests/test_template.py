@@ -1547,8 +1547,16 @@ def test_claude_skills_generated(copie_session_default):
     claude_skills = {p.name for p in skills_dir.iterdir()}
     assert claude_skills == github_skills, f"Skill sets diverged: {claude_skills ^ github_skills}"
 
+    github_skills_dir = result.project_dir / ".github" / "skills"
     for name in claude_skills:
-        assert (skills_dir / name / "SKILL.md").is_file(), f"Missing {name}/SKILL.md"
+        claude_skill = skills_dir / name / "SKILL.md"
+        github_skill = github_skills_dir / name / "SKILL.md"
+        assert claude_skill.is_file(), f"Missing {name}/SKILL.md"
+        # The two copies are hand-mirrored; a divergence ships inconsistent
+        # behavior to the two assistants. Assert byte-identity, not just presence.
+        assert claude_skill.read_text(encoding="utf-8") == github_skill.read_text(encoding="utf-8"), (
+            f"{name}/SKILL.md differs between .claude/skills and .github/skills"
+        )
 
 
 def test_claude_skills_not_gitignored(copie_session_default):
