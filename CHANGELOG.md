@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.31.0] - 2026-07-25
+
+This **minor release** includes 2 commits.
+
+
+### Features
+- Add an exclamation point to the home welcome title  ([#230](https://github.com/stateful-y/python-package-copier/pull/230)) by @gtauzin
+- Replace Dependabot with Renovate across template and fleet  ([#231](https://github.com/stateful-y/python-package-copier/pull/231)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.30.2] - 2026-07-25
 
 This **patch release** includes 1 commit.
