@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.32.0] - 2026-07-25
+
+This **minor release** includes 2 commits.
+
+
+### Features
+- Run whole-project gates at pre-push and add a roll-up merge gate  ([#237](https://github.com/stateful-y/python-package-copier/pull/237)) by @gtauzin
+
+### Documentation
+- Record yohou's 4th bespoke workflow and the v0.31.1 nox pin  by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.31.1] - 2026-07-25
 
 This **patch release** includes 1 commit.
