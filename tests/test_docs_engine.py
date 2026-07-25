@@ -182,6 +182,28 @@ def test_api_table_links_resolve(built_site):
 
 @pytest.mark.integration
 @pytest.mark.slow
+def test_homepage_title_is_the_bare_site_name(built_site):
+    """The home page ``<title>`` is the bare ``site_name`` (matches Material).
+
+    Zensical's ``base.html`` gates the bare-``site_name`` title branch on
+    ``page.is_homepage``, a flag the engine never populates -- so every page,
+    the home included, falls through to ``"<page title> - <site_name>"``, and a
+    logo-led home with no H1 degrades further to the filename (``"Index - Site"``).
+    Material set ``is_homepage`` and showed the bare name; the ``main.html``
+    override restores that by matching the page url against ``nav.homepage.url``.
+    The generated home *does* carry an H1, so a regression here surfaces as
+    ``"Welcome to Test Project's documentation - Test Project"`` -- still wrong.
+    """
+    home = built_site / "index.html"
+    assert home.is_file(), "the home page was not generated"
+    match = re.search(r"<title>(.*?)</title>", home.read_text(encoding="utf-8"), re.S)
+    assert match, "the home page has no <title>"
+    title = match.group(1).strip()
+    assert title == "Test Project", f"home <title> should be the bare site_name, got {title!r}"
+
+
+@pytest.mark.integration
+@pytest.mark.slow
 def test_api_member_page_renders_at_parity(built_site):
     """A member page shows its Parameters, Returns and Source sections (task 7.6).
 
