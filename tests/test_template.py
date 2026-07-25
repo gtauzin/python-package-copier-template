@@ -1,6 +1,7 @@
 """Tests for the copier template."""
 
 import contextlib
+import json
 import logging
 import os
 import posixpath
@@ -738,8 +739,13 @@ def test_github_actions_when_enabled(copie):
     assert (workflows_dir / "pr-title.yml").is_file(), "pr-title.yml workflow not created"
     assert (workflows_dir / "nightly.yml").is_file(), "nightly.yml workflow not created"
 
-    # Check for GitHub configuration files
-    assert (github_dir / "dependabot.yml").is_file(), "dependabot.yml not created"
+    # Check for GitHub configuration files. Renovate replaces Dependabot, so the
+    # config lives at the repo root as renovate.json and dependabot.yml is gone --
+    # two bots would open duplicate PRs for the same update.
+    assert (result.project_dir / "renovate.json").is_file(), "renovate.json not created"
+    assert not (github_dir / "dependabot.yml").exists(), (
+        "dependabot.yml should not be generated (replaced by renovate.json)"
+    )
     assert (github_dir / "PULL_REQUEST_TEMPLATE.md").is_file(), "PR template not created"
 
     # Check ISSUE_TEMPLATE directory
@@ -755,6 +761,61 @@ def test_github_actions_when_enabled(copie):
 
     # Check git-cliff.toml exists (should be included with workflows)
     assert (result.project_dir / ".git-cliff.toml").is_file(), ".git-cliff.toml not created"
+
+
+def test_renovate_config_self_contained_by_default(copie):
+    """With no preset, renovate.json is a full self-contained, valid config.
+
+    An outside consumer of the template has one repo and no fleet preset to extend;
+    Renovate errors on a preset it cannot read, so the default must carry its own rules.
+    """
+    result = copie.copy()
+
+    renovate = result.project_dir / "renovate.json"
+    assert renovate.is_file(), "renovate.json not created"
+
+    config = json.loads(renovate.read_text(encoding="utf-8"))
+    assert "packageRules" in config, "self-contained config is missing its own packageRules"
+    assert not any("renovate-config" in extend for extend in config.get("extends", [])), (
+        "the default config should not extend an external fleet preset"
+    )
+
+
+def test_renovate_config_extends_preset_when_set(copie):
+    """With renovate_preset set, renovate.json is a thin stub that extends it.
+
+    A fleet repo subscribes to one shared preset so policy lives in a single place
+    instead of a copy drifting in every repo. The stub carries no inline policy.
+    """
+    result = copie.copy(extra_answers={"renovate_preset": "stateful-y/renovate-config"})
+
+    renovate = result.project_dir / "renovate.json"
+    assert renovate.is_file(), "renovate.json not created"
+
+    config = json.loads(renovate.read_text(encoding="utf-8"))
+    assert config.get("extends") == ["github>stateful-y/renovate-config"], (
+        f"preset stub should extend the named preset, got {config.get('extends')!r}"
+    )
+    assert "packageRules" not in config, "a preset subscription should not inline packageRules"
+
+
+def test_workflows_pin_uv_nox_and_git_cliff(copie_session_default):
+    """uv, nox and git-cliff are pinned to exact versions, not floating "latest".
+
+    These three decide what runs in CI, so a floating install breaks the local == CI
+    guarantee and cannot be bumped by a bot the way a pinned version can. Each pin also
+    carries a `# renovate:` annotation so the custom manager in renovate.json updates it.
+    """
+    workflows = sorted((copie_session_default.project_dir / ".github" / "workflows").glob("*.yml"))
+    assert workflows, "no workflows generated"
+    joined = "\n".join(wf.read_text(encoding="utf-8") for wf in workflows)
+
+    assert re.search(r"uv tool install nox==\d[\w.]*", joined), "nox is not pinned to an exact version"
+    assert "uv tool install nox\n" not in joined, "a floating `uv tool install nox` remains"
+    assert re.search(r"tool: git-cliff@\d[\w.]*", joined), "git-cliff is not pinned to an exact version"
+
+    for dep in ("astral-sh/uv", "nox", "orhun/git-cliff"):
+        assert f"depName={dep}" in joined, f"missing renovate annotation for {dep}, so it cannot be bumped"
 
 
 def test_github_actions_when_disabled(copie):

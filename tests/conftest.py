@@ -33,6 +33,7 @@ class CopierTestFixture:
             "include_actions": True,
             "include_examples": True,
             "uv_version": "0.10.0",
+            "renovate_preset": "",
         }
 
         # Override with extra answers
@@ -120,6 +121,7 @@ def copie_session_default(session_projects_dir):
         "include_actions": True,
         "include_examples": True,
         "uv_version": "0.10.0",
+        "renovate_preset": "",
     }
 
     # Generate project once
@@ -166,6 +168,7 @@ def copie_session_minimal(session_projects_dir):
         "include_actions": False,
         "include_examples": False,
         "uv_version": "0.10.0",
+        "renovate_preset": "",
     }
 
     # Generate project once
@@ -213,6 +216,7 @@ def copie_session_custom(session_projects_dir):
         "include_actions": True,
         "include_examples": True,
         "uv_version": "0.10.0",
+        "renovate_preset": "",
     }
 
     # Generate project once
