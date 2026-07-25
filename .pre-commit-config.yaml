@@ -1,8 +1,9 @@
-# `install` creates only the pre-commit hook unless told otherwise, so commitizen's
-# `stages: [commit-msg]` hook was declared but never installed -- the gate existed on
-# paper and never once ran. Naming both types here is what makes `prek install` wire up
-# the commit-msg hook that validates the message a single-commit PR ships.
-default_install_hook_types: [pre-commit, commit-msg]
+# `install` creates only the pre-commit hook unless told otherwise, so any hook pinned to
+# another stage would be declared but never installed -- the gate would exist on paper and
+# never run (as commitizen's `commit-msg` hook once did). Naming every stage here is what
+# makes `prek install` wire up the commit-msg hook that validates a single-commit PR's
+# message and the pre-push hook (interrogate) that gates before a push.
+default_install_hook_types: [pre-commit, commit-msg, pre-push]
 
 repos:
   # prek's built-in Rust implementations, declared explicitly. Pointing these at
@@ -50,6 +51,9 @@ repos:
       # second (byte-identical) copy of it under .claude/skills dropped the pool
       # below the gate. A threshold that moves when you copy a file is measuring the
       # pool, not the code; excluding both copies leaves the gate on what it is for.
+      # Runs at pre-push, not pre-commit: interrogate scores a pooled average across
+      # the whole package, so it gives no per-commit signal and only refuses commits /
+      # trips on old code during a rebase. pre-push runs it once before sharing.
       - id: interrogate
         name: interrogate
         entry: uv run --locked interrogate
@@ -57,6 +61,7 @@ repos:
         types: [python]
         exclude: ^(tests/|\.claude/skills/|\.github/skills/|.*_version\.py$|.*\{%.*%\}.*)
         require_serial: true
+        stages: [pre-push]
 
       # Ruff linter (autofix)
       - id: ruff

@@ -388,6 +388,76 @@ def test_precommit_ty_uses_uv_run(copie_session_default):
     assert "pass_filenames: false" in content
 
 
+def test_precommit_whole_project_gates_run_at_pre_push(copie_session_default):
+    """The refusing whole-project gates run at pre-push, not on every commit.
+
+    ty, interrogate, and no-rst-citations do not autofix and score the whole project, so
+    running them at pre-commit only refuses commits and fires on old code during a rebase.
+    They move to the pre-push stage, and `default_install_hook_types` must name pre-push or
+    the hook is declared but never wired into .git/hooks -- a gate that exists only on paper.
+    """
+    content = (copie_session_default.project_dir / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+
+    # Parse per-hook so a stray stages line elsewhere cannot satisfy the check for the
+    # wrong hook: slice from each id to the next hook declaration (or end of file).
+    for hook_id in ("interrogate", "no-rst-citations", "ty"):
+        block = content.split(f"id: {hook_id}", 1)[1].split("- id:", 1)[0]
+        assert "stages: [pre-push]" in block, f"{hook_id} should run at pre-push, not pre-commit"
+
+    # The stage is actually installed, not merely declared.
+    hook_types = content.split("default_install_hook_types:")[1].split("\n")[0]
+    assert "pre-push" in hook_types, f"pre-push missing from install hook types: {hook_types}"
+
+
+def test_noxfile_fix_runs_pre_push_stage(copie_session_default):
+    """The fix session (run by the CI lint job) also runs the pre-push-stage gates.
+
+    The gates moved off pre-commit, and a plain `prek run` only runs the pre-commit stage,
+    so without running the pre-push stage here the CI lint job would silently stop type- and
+    docstring-checking (a green check measuring nothing). This is the CI-side enforcement
+    that holds even when a contributor never installed local hooks.
+    """
+    content = (copie_session_default.project_dir / "noxfile.py").read_text(encoding="utf-8")
+    fix_body = content.split("def fix(", 1)[1].split("\ndef ", 1)[0]
+    assert '"--stage"' in fix_body and '"pre-push"' in fix_body, (
+        "the fix session must run the pre-push stage so CI covers the moved gates"
+    )
+
+
+def test_install_command_forces_hook_reinstall(copie_session_default):
+    """The documented install command reinstalls hooks forcibly with `prek install -f`.
+
+    `default_install_hook_types` only wires hooks at install time, so a clone that installed
+    before pre-push was added needs a forced reinstall to pick up the new stage. Without -f,
+    prek chains an old shim instead of overwriting it and the pre-push gate stays unwired.
+    """
+    justfile = (copie_session_default.project_dir / "justfile").read_text(encoding="utf-8")
+    assert "prek install -f" in justfile, "install recipe must force-reinstall hooks (prek install -f)"
+
+
+def test_generated_ci_declares_rollup_gate(copie_session_default):
+    """The generated CI declares the always-running roll-up gate the ruleset requires.
+
+    test-fast is a matrix and test-full is skipped on draft PRs, so neither has a stable
+    check-run name a ruleset can require. `ci-passed` depends on every blocking job and runs
+    with `if: always()`, giving the ruleset one stable required check that survives matrix
+    and conditional changes. (safe_load also fails if the templated YAML is malformed.)
+    """
+    import yaml
+
+    wf = copie_session_default.project_dir / ".github" / "workflows" / "tests.yml"
+    data = yaml.safe_load(wf.read_text(encoding="utf-8"))
+
+    assert "ci-passed" in data["jobs"], "roll-up gate job 'ci-passed' missing from CI"
+    gate = data["jobs"]["ci-passed"]
+    assert gate["name"] == "CI passed"
+    # if: always() so the gate reports even when a dependency failed or was skipped.
+    assert str(gate.get("if")).strip() == "always()", "ci-passed must run with if: always()"
+    # It must depend on the blocking jobs so their failure fails the gate.
+    for job in ("test-fast", "test-full", "lint", "test_docstrings", "check_docs"):
+        assert job in gate["needs"], f"ci-passed must depend on {job}"
+
+
 def test_precommit_linters_are_pinned_by_uv_lock(copie_session_default):
     """Test that version-sensitive linters resolve from uv.lock, not a pre-commit rev.
 
