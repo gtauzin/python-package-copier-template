@@ -150,6 +150,17 @@ uv_version:
   default: "0.10.0"
   when: "{{ include_actions }}"
 
+renovate_preset:
+  type: str
+  # Renovate replaces Dependabot for version updates. When this is set, the generated
+  # renovate.json is a thin stub that extends a shared preset (e.g.
+  # "stateful-y/renovate-config"), so fleet-wide dependency policy lives in one repo
+  # instead of a copy drifting in each. When empty (the default), a full self-contained
+  # renovate.json is generated, which is what a standalone project wants. Renovate errors
+  # on a preset it cannot read, so leave this empty unless you own the named preset repo.
+  help: "Shared Renovate preset to extend as owner/repo (empty = self-contained config)"
+  default: ""
+
 include_examples:
   type: bool
   help: "Include examples/ directory with marimo notebooks?"

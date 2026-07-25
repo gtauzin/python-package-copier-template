@@ -15,7 +15,6 @@ my-package/
 │   │   ├── changelog.yml
 │   │   ├── publish-release.yml
 │   │   └── nightly.yml
-│   ├── dependabot.yml
 │   └── pull_request_template.md
 ├── docs/
 │   ├── index.md
@@ -48,6 +47,7 @@ my-package/
 ├── mkdocs.yml
 ├── noxfile.py
 ├── pyproject.toml
+├── renovate.json
 └── README.md
 ```
 
@@ -96,7 +96,7 @@ The project uses a **src layout** - all package code lives under `src/<package_n
 | `workflows/changelog.yml` | Changelog generation on version tags |
 | `workflows/publish-release.yml` | GitHub Release + PyPI publishing |
 | `workflows/nightly.yml` | Daily dependency testing |
-| `dependabot.yml` | Automated dependency update PRs |
+| `renovate.json` | Automated dependency update PRs (Renovate; self-contained, or a stub extending a shared preset) |
 | `pull_request_template.md` | PR description template |
 | `ISSUE_TEMPLATE/` | Bug report and feature request templates |
 
@@ -118,5 +118,5 @@ Some files are only generated based on template variable choices:
 
 | Condition | Files Generated |
 |-----------|----------------|
-| `include_actions=true` | `.github/workflows/*`, `.github/dependabot.yml` |
+| `include_actions=true` | `.github/workflows/*` |
 | `include_examples=true` | `examples/hello.py`, `tests/test_examples.py`, `docs/pages/tutorials/examples.md`, `docs/stylesheets/gallery.css` |
