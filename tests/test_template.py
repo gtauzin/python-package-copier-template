@@ -817,6 +817,36 @@ def test_workflows_pin_uv_nox_and_git_cliff(copie_session_default):
     for dep in ("astral-sh/uv", "nox", "orhun/git-cliff"):
         assert f"depName={dep}" in joined, f"missing renovate annotation for {dep}, so it cannot be bumped"
 
+    # EVERY setup-uv version pin must carry the annotation, not just one. A single
+    # un-annotated step (e.g. commit-message.yml was missed once) is a pin Renovate
+    # silently never bumps.
+    for wf in workflows:
+        lines = wf.read_text(encoding="utf-8").splitlines()
+        for i, line in enumerate(lines):
+            if line.strip().startswith("version:") and "astral-sh/setup-uv" in "\n".join(lines[max(0, i - 4) : i]):
+                prev = lines[i - 1].strip() if i > 0 else ""
+                assert prev.startswith("# renovate:"), (
+                    f"{wf.name} line {i + 1}: a setup-uv version pin has no `# renovate:` annotation, "
+                    "so Renovate cannot bump it"
+                )
+
+
+def test_renovate_preset_persisted_in_copier_answers(copie):
+    """A chosen renovate_preset must round-trip through .copier-answers.yml.
+
+    That file is an explicit allowlist of variables. A variable missing from it is not
+    persisted, so the next `copier update` falls back to the question default and
+    silently reverts the rendered renovate.json (stub -> self-contained). This guards
+    the preset choice against being lost on the very next update.
+    """
+    result = copie.copy(extra_answers={"renovate_preset": "stateful-y/renovate-config"})
+
+    answers = (result.project_dir / ".copier-answers.yml").read_text(encoding="utf-8")
+    assert "renovate_preset:" in answers and "stateful-y/renovate-config" in answers, (
+        "renovate_preset is not persisted in .copier-answers.yml; a future copier update "
+        "would revert renovate.json to the self-contained config"
+    )
+
 
 def test_github_actions_when_disabled(copie):
     """Test that GitHub Actions workflows are NOT created when include_actions=False."""
