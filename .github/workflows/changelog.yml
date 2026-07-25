@@ -20,7 +20,8 @@ jobs:
       - name: Install git-cliff
         uses: taiki-e/install-action@v2
         with:
-          tool: git-cliff
+          # renovate: datasource=github-releases depName=orhun/git-cliff
+          tool: git-cliff@2.13.1
 
       - name: Generate changelog
         id: changelog

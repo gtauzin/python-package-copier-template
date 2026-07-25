@@ -43,7 +43,8 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Run fast tests (excluding slow/integration tests)
-        run: uvx nox -s test_fast-${{ matrix.python-version }}
+        # renovate: datasource=pypi depName=nox
+        run: uvx nox@2026.7.11 -s test_fast-${{ matrix.python-version }}
 
   # Full test suite runs on Ubuntu when PR is not draft or on main branch
   test-full:
@@ -70,7 +71,8 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Run all tests
-        run: uvx nox -s test-${{ matrix.python-version }}
+        # renovate: datasource=pypi depName=nox
+        run: uvx nox@2026.7.11 -s test-${{ matrix.python-version }}
 
   lint:
     name: Lint and format
@@ -87,4 +89,5 @@ jobs:
 
       - name: Run hooks with nox
         run: |
-          uvx nox -s fix
+          # renovate: datasource=pypi depName=nox
+          uvx nox@2026.7.11 -s fix
