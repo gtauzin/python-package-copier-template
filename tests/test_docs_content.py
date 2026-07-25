@@ -51,7 +51,7 @@ class TestDocsIndexContent:
 
         # Should include project name in welcome heading and throughout
         assert "My Awesome Tool" in content
-        assert "Welcome to My Awesome Tool's documentation" in content
+        assert "Welcome to My Awesome Tool's documentation!" in content
 
         # Should include CTA cards with proper structure
         assert "Get Started in 5 Minutes" in content
