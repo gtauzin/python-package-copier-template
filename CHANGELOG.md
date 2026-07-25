@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.32.1] - 2026-07-25
+
+This **patch release** includes 1 commit.
+
+
+### Bug Fixes
+- Gate test-compat in the ci-passed roll-up  ([#239](https://github.com/stateful-y/python-package-copier/pull/239)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.31.1] - 2026-07-25
 
 This **patch release** includes 1 commit.
