@@ -453,8 +453,10 @@ def test_generated_ci_declares_rollup_gate(copie_session_default):
     assert gate["name"] == "CI passed"
     # if: always() so the gate reports even when a dependency failed or was skipped.
     assert str(gate.get("if")).strip() == "always()", "ci-passed must run with if: always()"
-    # It must depend on the blocking jobs so their failure fails the gate.
-    for job in ("test-fast", "test-full", "lint", "test_docstrings", "check_docs"):
+    # It must depend on the blocking jobs so their failure fails the gate. test-compat ships
+    # disabled (if: false); it is still a dependency so a project that enables compat pins is
+    # gated automatically, and a skipped dependency does not fail the if: always() roll-up.
+    for job in ("test-fast", "test-compat", "test-full", "lint", "test_docstrings", "check_docs"):
         assert job in gate["needs"], f"ci-passed must depend on {job}"
 
 
