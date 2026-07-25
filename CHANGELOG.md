@@ -19,6 +19,22 @@ This **patch release** includes 1 commit.
 Thanks to all contributors for this release:
 - @gtauzin
 
+## [0.32.0] - 2026-07-25
+
+This **minor release** includes 2 commits.
+
+
+### Features
+- Run whole-project gates at pre-push and add a roll-up merge gate  ([#237](https://github.com/stateful-y/python-package-copier/pull/237)) by @gtauzin
+
+### Documentation
+- Record yohou's 4th bespoke workflow and the v0.31.1 nox pin  by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.31.1] - 2026-07-25
 
 This **patch release** includes 1 commit.
