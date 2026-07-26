@@ -6,6 +6,10 @@ on:
     branches:
       - main
 
+# Least-privilege default: read-only token; the create-release job widens to contents:write.
+permissions:
+  contents: read
+
 jobs:
   create-release:
     # Only run if PR was merged and has the changelog label

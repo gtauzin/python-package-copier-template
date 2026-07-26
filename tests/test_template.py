@@ -4173,15 +4173,20 @@ def test_docs_use_no_em_or_en_dashes(copie_session_default):
 # every repo that copier must replay on every release -- see the test below.
 EXPECTED_ACTION_PINS = {
     "actions/checkout": "v7",
+    "actions/create-github-app-token": "v2",
+    "actions/download-artifact": "v7",
     "actions/github-script": "v9",
     "actions/upload-artifact": "v7",
     "amannn/action-semantic-pull-request": "v6",
     "astral-sh/setup-uv": "v7",
     "codecov/codecov-action": "v7",
     "codecov/test-results-action": "v1",
-    "dawidd6/action-download-artifact": "v21",
+    "github/codeql-action/analyze": "v3",
+    "github/codeql-action/init": "v3",
+    "github/codeql-action/upload-sarif": "v3",
+    "ossf/scorecard-action": "v2",
     "peter-evans/create-pull-request": "v8",
-    "pypa/gh-action-pypi-publish": "release/v1",
+    "pypa/gh-action-pypi-publish": "v1.13.0",
     "taiki-e/install-action": "v2",
 }
 

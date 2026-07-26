@@ -6,6 +6,10 @@ on:
     - cron: "30 2 * * *"
   workflow_dispatch: # Allow manual triggering
 
+# Least-privilege default: read-only token; create-issue-on-failure widens to issues:write.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,9 +19,9 @@ jobs:
           {%- for v in versions if v >= min_python_version and v <= max_python_version -%}
             "{{ v }}"{{ ", " if not loop.last else "" }}
           {%- endfor -%}]
-    env:
+{% if include_codecov %}    env:
       CODECOV_TOKEN: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
-    steps:
+{% endif %}    steps:
       - uses: actions/checkout@v7
 
       - name: Install uv
@@ -41,12 +45,12 @@ jobs:
       - name: Run docstring tests
         run: nox -s test_docstrings
 
-      - name: Upload coverage reports
+{% if include_codecov %}      - name: Upload coverage reports
         uses: codecov/codecov-action@v7
         if: {% raw %}${{ matrix.python-version == '3.12' && env.CODECOV_TOKEN != '' }}{% endraw %}
         with:
           token: {% raw %}${{ env.CODECOV_TOKEN }}{% endraw %}
-
+{% endif %}
   create-issue-on-failure:
     needs: test
     if: {% raw %}${{ failure() }}{% endraw %}

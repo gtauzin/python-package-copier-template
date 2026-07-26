@@ -238,22 +238,27 @@ class TestPublishWorkflow:
         assert "name: pypi" in workflow_content
 
     def test_changelog_workflow_no_pypi_job(self, copie):
-        """Test that changelog workflow does not publish to PyPI."""
+        """Changelog workflow only opens the changelog PR: no build, no publish.
+
+        The build moved into publish-release.yml so the built artifacts pass natively
+        within one workflow run, removing the third-party cross-workflow download action.
+        """
         result = copie.copy(extra_answers={"include_actions": True})
         assert result.exit_code == 0
 
         workflow_path = result.project_dir / ".github" / "workflows" / "changelog.yml"
         workflow_content = workflow_path.read_text(encoding="utf-8")
 
-        # Should NOT have pypi-publish job (moved to publish-release.yml)
+        # Should NOT have pypi-publish job (lives in publish-release.yml)
         assert "pypi-publish:" not in workflow_content
         assert "pypi_publish:" not in workflow_content
 
-        # But should still build packages
-        assert "uv build" in workflow_content or "build" in workflow_content.lower()
+        # Build + artifact upload moved to publish-release.yml
+        assert "uv build" not in workflow_content
+        assert "upload-artifact" not in workflow_content
 
-        # Should store artifacts
-        assert "upload-artifact" in workflow_content
+        # It opens the changelog PR
+        assert "create-pull-request" in workflow_content
 
 
 class TestChangelogWorkflow:
@@ -278,8 +283,9 @@ class TestChangelogWorkflow:
         # Should use git-cliff action
         assert "git-cliff" in workflow_content
 
-        # Should use CHANGELOG_AUTOMATION_TOKEN
-        assert "CHANGELOG_AUTOMATION_TOKEN" in workflow_content
+        # Opens the PR with a short-lived GitHub App token, not a long-lived PAT
+        assert "CHANGELOG_AUTOMATION_TOKEN" not in workflow_content
+        assert "create-github-app-token" in workflow_content
 
     def test_changelog_workflow_triggered_on_tags(self, copie):
         """Test that changelog workflow triggers on version tags."""
