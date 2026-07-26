@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from _build_layout import BUILD_DIR
 
 
@@ -5079,3 +5080,96 @@ def test_generated_index_pages_introduce_their_subpages(copie_session_default):
         assert "<!-- SUBPAGES -->" in index.read_text(encoding="utf-8"), (
             f"the {quadrant} index describes its quadrant but never lists its own pages"
         )
+
+
+def test_claude_md_is_seeded_and_committable(copie_session_default):
+    """A generated project gets a project-instructions file it is allowed to commit.
+
+    The template used to ignore six `CLAUDE*` filename variants and ship no
+    replacement, so no generated project could record its own invariants anywhere the
+    repository could see. Across the fleet that left the knowledge describing seven
+    projects living outside all seven of them.
+    """
+    project = copie_session_default.project_dir
+    claude_md = project / "CLAUDE.md"
+    assert claude_md.is_file(), "no CLAUDE.md was seeded into the generated project"
+    assert claude_md.stat().st_size > 200, "the seeded CLAUDE.md is empty or a stub"
+
+    gitignore = (project / ".gitignore").read_text(encoding="utf-8")
+    for variant in ("CLAUDE.md", "CLAUDE_INSTRUCTIONS.md", ".claude.md", "claude-prompt.md"):
+        assert not re.search(rf"^{re.escape(variant)}$", gitignore, re.MULTILINE), (
+            f"{variant} is still ignored, so a project cannot commit its own instructions"
+        )
+
+
+def test_claude_md_is_registered_as_seed_once():
+    """`CLAUDE.md` must be in `_skip_if_exists`, or an update reverts a project's edits.
+
+    Copier applies an update as a diff against the *template's* copy. Once a project
+    has rewritten this file wholesale, one shifted line rejects the whole hunk and the
+    page reverts to the stub, with the project's content left in a `.rej` nobody
+    reads. That is not hypothetical: v0.22.0 did exactly this to five projects'
+    getting-started.md from a whitespace-only change. `_skip_if_exists` is the only
+    thing copier itself honours here; the update skill's classification is advisory.
+    """
+    config = yaml.safe_load(Path("copier.yml").read_text(encoding="utf-8"))
+    assert "CLAUDE.md" in config["_skip_if_exists"], (
+        "CLAUDE.md is shipped but not seed-once; a template update would revert every project's own instructions"
+    )
+
+
+def test_claude_md_survives_a_later_template_run(tmp_path):
+    """A project's rewritten CLAUDE.md is not overwritten by a later template run.
+
+    The behavioural half of what test_claude_md_is_registered_as_seed_once only
+    documents, and the same shape as the branding test above. Registering a file in
+    `_skip_if_exists` is a claim; re-running the template is what checks it.
+
+    This matters because an attempt to reproduce the original v0.22.0 loss through
+    `copier update` did not reproduce it: copier's three-way merge preserved a
+    rewritten CLAUDE.md even with the guard removed, for both a wholly-rewritten file
+    and a file still resembling the template's with one line changed. So the guard's
+    necessity is not demonstrated by that route. What IS demonstrable, and what this
+    pins, is that an overwriting run leaves the project's version alone -- and the
+    control below shows such a run genuinely does overwrite anything unguarded, so the
+    survival is the guard's doing and not the run being a no-op.
+    """
+    from copier import run_copy
+
+    answers = {
+        "project_name": "Seeded",
+        "project_slug": "seeded",
+        "package_name": "seeded",
+        "description": "d",
+        "author_name": "A",
+        "author_email": "a@b.c",
+        "github_username": "u",
+        "version": "0.1.0",
+        "min_python_version": "3.11",
+        "max_python_version": "3.14",
+        "license": "MIT",
+        "include_actions": True,
+        "include_examples": True,
+    }
+    template_dir = str(Path(__file__).parent.parent)
+    project = tmp_path / "seeded-project"
+    run_copy(template_dir, str(project), data=answers, defaults=True, overwrite=True, unsafe=True, vcs_ref="HEAD")
+
+    claude_md = project / "CLAUDE.md"
+    assert claude_md.is_file(), "the template must seed CLAUDE.md so a new project has something to start from"
+    owned = "# Seeded\n\nPROJECT-OWNED CONTENT THAT MUST SURVIVE.\n"
+    claude_md.write_text(owned, encoding="utf-8")
+
+    # The control: a file the template owns and does NOT guard. If this survives too,
+    # the run overwrote nothing and the assertion below would prove nothing.
+    readme = project / "README.md"
+    readme.write_text("CLOBBER ME\n", encoding="utf-8")
+
+    run_copy(template_dir, str(project), data=answers, defaults=True, overwrite=True, unsafe=True, vcs_ref="HEAD")
+
+    assert readme.read_text(encoding="utf-8") != "CLOBBER ME\n", (
+        "the control file was not overwritten, so this run proves nothing about the guard"
+    )
+    assert claude_md.read_text(encoding="utf-8") == owned, (
+        "the template overwrote the project's own CLAUDE.md; _skip_if_exists is not holding"
+    )

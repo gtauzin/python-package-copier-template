@@ -1,0 +1,41 @@
+# Codecov reports coverage for this repository; it does not judge it.
+#
+# Two facts make a pass/fail verdict meaningless here, and neither is a defect to be
+# fixed by tightening a threshold:
+#
+# 1. Coverage measures the wrong thing, unavoidably. `[tool.coverage.run] source` is
+#    ["tests"], because this repository has no `src/`. That answers "did this test file
+#    execute", which a passing test answers by definition. The product is `template/`:
+#    Jinja sources that coverage cannot instrument, executed only inside generated
+#    projects in temporary directories during the integration tests. A generated
+#    project measures `source = ["<package_name>"]` and the number means something
+#    there. Here it does not.
+#
+# 2. Nothing enforces it, by design. The coverage job is deliberately excluded from the
+#    `ci-passed` roll-up so that a Codecov outage -- the very thing the OIDC upload is a
+#    canary for -- cannot block merges. That decision is correct and stays.
+#
+# Left at defaults, Codecov combined those two into a comment reading ":x: Patch
+# coverage is 87% ... Please review" on a pull request whose checks were entirely
+# green and which nothing could stop merging. A red signal that can never mean
+# anything trains readers to ignore the source, including on the day it matters.
+#
+# Both statuses are off rather than `informational`. `informational` only stops the
+# status blocking; Codecov still computes the target comparison and the pull request
+# comment still renders ":x: ... Please review". Since the grade is what is meaningless
+# here, the grade is what goes. The comment stays for the per-line annotations, which
+# is how the unrun failure branches in the parity tests were found.
+#
+# NOTE: Codecov reads repository configuration from the DEFAULT BRANCH, so this file
+# has no effect until it is merged. The comment on the pull request that introduced it
+# will still show the old framing.
+coverage:
+  status:
+    project: false
+    patch: false
+
+# The comment is worth keeping: its uncovered-line table is how the unrun failure
+# branches in the parity tests were found. Only the pass/fail framing goes.
+comment:
+  layout: "condensed_header, files, condensed_footer"
+  require_changes: true

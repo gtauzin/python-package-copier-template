@@ -1,0 +1,248 @@
+# Parity manifest: what this repository runs, against what it ships.
+#
+# This repo generates seven packages and receives nothing back. Improvements flow out
+# of template/; nothing flows in. That is how `fix(ci): pin exact uv version in all
+# setup-uv steps` pinned every step in the template and none of this repo's own, and
+# how the `ci-passed` roll-up shipped in v0.32.0 while no ruleset required it here for
+# four releases.
+#
+# Every gate the template ships must appear below with a status:
+#
+#   matched   this repo runs an equivalent
+#   excluded  it cannot or should not apply here, and `reason` says why
+#   leading   this repo runs something the template has not adopted yet
+#
+# A gate with no entry fails the suite. The `reason` text is the artifact: it turns
+# "this repo skips that" from something silently true into something reviewed in a
+# pull request. The shipped-gate list is DERIVED from a rendered project, never
+# hand-copied, so a new template gate arrives here as an unanswered entry rather than
+# not arriving at all.
+
+# ---------------------------------------------------------------------------
+# Gates held in files: workflow jobs and pre-commit hooks.
+# ---------------------------------------------------------------------------
+file_gates:
+  # --- CI: test execution -------------------------------------------------
+  tests.yml:test-fast:
+    equivalent: tests.yml:test-fast
+    status: matched
+    reason: this repo runs test-fast across the same OS/Python matrix.
+  tests.yml:test-full:
+    equivalent: tests.yml:test-full
+    status: matched
+    reason: this repo runs test-full on non-draft pull requests.
+  tests.yml:lint:
+    equivalent: tests.yml:lint
+    status: matched
+    reason: this repo runs the same nox-driven hook pass.
+  tests.yml:ci-passed:
+    equivalent: tests.yml:ci-passed
+    status: matched
+    reason: this repo runs the roll-up, and protect-main requires it (see settings_gates).
+  tests.yml:secret-scan:
+    equivalent: tests.yml:secret-scan
+    status: matched
+    reason: gitleaks job present and listed in the roll-up's needs.
+  tests.yml:test-compat:
+    status: excluded
+    reason: >-
+      Pins a dependency version and re-runs the fast suite. This repo's dependencies
+      are test-only (copier, pytest), so there is no library surface whose version
+      compatibility a downstream would care about. The template ships it disabled
+      (if: false) until a project defines pins.
+  tests.yml:test_docstrings:
+    status: excluded
+    reason: >-
+      Runs doctests over src/<package>. This repo has no src/ and ships no importable
+      package; its Python is tests and noxfile only.
+  tests.yml:check_docs:
+    equivalent: tests.yml:test-full
+    status: matched
+    reason: >-
+      Equivalent is tests/test_repo_docs.py, which builds with the publishing engine
+      and asserts the site has content. Runs in the test suite rather than as a
+      separate CI job; the roll-up covers it either way.
+  tests.yml:compare_docs_mkdocs:
+    status: leading
+    reason: >-
+      A non-blocking Material-vs-Zensical comparison build for the transition. This
+      repo finished that transition: every entry point is on Zensical and
+      test_every_docs_entry_point_uses_the_publishing_engine forbids reintroducing the
+      other engine. Nothing to compare against.
+  tests.yml:examples:
+    status: excluded
+    reason: >-
+      Runs marimo example notebooks. This repo ships no examples/ directory; it is a
+      copier template, not a library with a gallery.
+
+  # --- CI: release and metadata -------------------------------------------
+  changelog.yml:changelog:
+    equivalent: changelog.yml:changelog
+    status: matched
+    reason: same git-cliff changelog PR flow, on the same tag trigger.
+  publish-release.yml:create-release:
+    equivalent: publish-release.yml:create-release
+    status: matched
+    reason: this repo creates a GitHub release from the changelog PR merge.
+  publish-release.yml:build:
+    status: excluded
+    reason: >-
+      Builds an sdist and wheel. This repo is a copier template consumed by
+      `copier copy`, not a distributable package; there is nothing to build.
+  publish-release.yml:pypi-publish:
+    status: excluded
+    reason: >-
+      Publishes to PyPI via OIDC trusted publishing. Nothing to publish, per the
+      build exclusion above.
+  commit-message.yml:validate-commit-message:
+    equivalent: commit-message.yml:validate-commit-message
+    status: matched
+    reason: same single-commit message validation.
+  pr-title.yml:validate-pr-title:
+    equivalent: pr-title.yml:validate-pr-title
+    status: matched
+    reason: same conventional pull request title check.
+
+  # --- CI: scheduled and security -----------------------------------------
+  nightly.yml:test:
+    equivalent: nightly.yml:test
+    status: matched
+    reason: >-
+      Added by this change. This repo's suite generates projects and runs nox inside
+      them, so it is the fleet's most exposed repo to upstream toolchain drift and was
+      the only one with no scheduled run.
+  nightly.yml:create-issue-on-failure:
+    equivalent: nightly.yml:create-issue-on-failure
+    status: matched
+    reason: same issue-filing job, with the same dedupe-by-label behaviour.
+  codeql.yml:analyze:
+    status: matched
+    equivalent: codeql.yml:analyze
+    reason: >-
+      Adopted. This repo is public so CodeQL is free, and it has Python worth scanning
+      (the test suite and noxfile). It was absent only because harden-fleet-security
+      shipped it to the template and never here, which is the shortfall this capability
+      exists to surface.
+  scorecard.yml:analysis:
+    status: matched
+    equivalent: scorecard.yml:analysis
+    reason: >-
+      Adopted. Scorecard independently grades whether the other controls remain in
+      force, which is the right shape of check for a repo whose merge gate went
+      unenforced for four releases with nothing noticing.
+
+  # --- shipped root files ------------------------------------------------
+  # Derived from the rendered project root. Jobs and hooks are not the only shape a
+  # control takes, and a manifest reading only those was blind to CODEOWNERS and
+  # SECURITY.md -- which is how both reached seven generated projects and not this one.
+  file:.editorconfig: {status: matched, reason: byte-identical to the shipped copy.}
+  file:.gitignore: {status: matched, reason: this repo maintains its own, with the same shape.}
+  file:.pre-commit-config.yaml: {status: matched, reason: same hook set, scoped for a repo with no src/.}
+  file:.git-cliff.toml: {status: matched, reason: same changelog config, now on the same field names.}
+  file:.readthedocs.yml: {status: matched, reason: same Read the Docs build, on the same engine.}
+  file:pyproject.toml: {status: matched, reason: present, with test-only dependencies rather than a package.}
+  file:noxfile.py: {status: matched, reason: present; sessions differ because this repo tests a template.}
+  file:justfile: {status: matched, reason: present, with recipes for template work.}
+  file:mkdocs.yml: {status: matched, reason: present, driving the same docs engine.}
+  file:renovate.json: {status: matched, reason: present, same dependency automation.}
+  file:README.md: {status: matched, reason: present.}
+  file:LICENSE: {status: matched, reason: present.}
+  file:CHANGELOG.md: {status: matched, reason: present, generated the same way.}
+  file:CODE_OF_CONDUCT.md: {status: matched, reason: present.}
+  file:CONTRIBUTING.md:
+    status: excluded
+    reason: >-
+      Generated projects get a short pointer to their published contributing guide.
+      This repo's equivalent lives at docs/pages/how-to/contribute.md and is reached
+      from the README, so a second stub at the root would be a third copy to keep in
+      step for no reader's benefit.
+  file:CLAUDE.md: {status: matched, reason: present and now tracked, reconciled with the Copilot copy.}
+  file:.copier-answers.yml:
+    status: excluded
+    reason: >-
+      Records which template version a project was generated from. This repository IS
+      the template; it has no upstream to record, which is the entire premise of this
+      capability.
+  file:CODEOWNERS:
+    status: excluded
+    reason: >-
+      DELIBERATE, AND NARROW. harden-fleet-security ships this to projects and its own
+      task 9.4 depends on one existing here for review-based protection. The protect-main
+      ruleset currently enforces review without it. Revisit if review ever needs to route
+      by path; until then a single-maintainer CODEOWNERS adds a file and no signal.
+  file:SECURITY.md:
+    status: matched
+    reason: >-
+      Adopted, with wording corrected for what this repo is: a fix reaches a generated
+      project only when that project runs `copier update`, so there is no patched
+      release to consume. Also satisfies an OpenSSF Scorecard check.
+
+  # --- pre-commit / prek hooks --------------------------------------------
+  hook:trailing-whitespace: {status: matched, reason: same builtin hook.}
+  hook:end-of-file-fixer: {status: matched, reason: same builtin hook.}
+  hook:check-yaml: {status: matched, reason: same builtin hook.}
+  hook:check-added-large-files: {status: matched, reason: same builtin hook.}
+  hook:check-json: {status: matched, reason: same builtin hook.}
+  hook:check-toml: {status: matched, reason: same builtin hook.}
+  hook:check-merge-conflict: {status: matched, reason: same builtin hook.}
+  hook:mixed-line-ending: {status: matched, reason: same builtin hook.}
+  hook:commitizen: {status: matched, reason: same commit-msg stage hook.}
+  hook:gitleaks: {status: matched, reason: same secret-scanning hook.}
+  hook:ruff: {status: matched, reason: same linter, pinned by uv.lock.}
+  hook:ruff-format: {status: matched, reason: same formatter, pinned by uv.lock.}
+  hook:rumdl: {status: matched, reason: same markdown linter.}
+  hook:rumdl-fmt: {status: matched, reason: same markdown formatter.}
+  hook:interrogate:
+    status: matched
+    reason: >-
+      Present, but scoped differently: the template scopes it to src/, and this repo
+      has none, so it runs over the repo's own Python with skill payloads excluded.
+  hook:no-rst-citations:
+    status: excluded
+    reason: >-
+      Bans reStructuredText citation syntax in numpydoc docstrings so griffe does not
+      render it literally on API pages. This repo has no API pages and no numpydoc
+      docstrings to mis-render.
+  hook:ty:
+    status: excluded
+    reason: >-
+      Type-checks src/. This repo has no src/. Its Python is tests and noxfile, which
+      ruff covers; adding a type gate over test fixtures would be ceremony without a
+      published interface to protect.
+
+# ---------------------------------------------------------------------------
+# Gates held in repository settings, not files.
+#
+# File derivation cannot see these. A manifest limited to files would report full
+# parity on a repo whose merge gate is switched off, which is exactly what happened
+# here for four releases after the roll-up shipped. Each entry records HOW its state
+# is determined and at WHAT CADENCE, because that judgment is per control.
+# ---------------------------------------------------------------------------
+settings_gates:
+  ruleset-requires-roll-up:
+    status: matched
+    mechanism: repository ruleset `protect-main`, enforcement active
+    determined_by: >-
+      Unattended query of the hosting platform via the `gh` CLI, in
+      tests/test_parity_manifest.py. No new credential was introduced: the check reuses
+      whatever authentication the runner already has, and when `gh` is missing or
+      unauthenticated it SKIPS rather than passes, so an unreachable check can never
+      read as a satisfied one. That was the resolution of the credential question --
+      a fine-grained administration-read token was considered and judged unnecessary
+      once the existing CLI auth proved sufficient for reading rulesets.
+    cadence: every test run, initiated by no one
+    reason: >-
+      The roll-up check name exists to be the single required check. Nothing required
+      it between v0.32.0 and 2026-07-26, and nothing recorded that gap while it was
+      open. This entry is checked unattended precisely because the failure mode is
+      silent reversion: a ruleset deleted or renamed later looks identical to one that
+      was never created.
+  changelog-automation-identity:
+    status: matched
+    mechanism: GitHub App token minted per run via actions/create-github-app-token
+    determined_by: workflow file inspection (the secret names it references)
+    cadence: every test run
+    reason: >-
+      Replaced a broad non-expiring PAT. The workflow wiring is a file and therefore
+      checkable; whether the org secrets are actually provisioned is not, and a run
+      failing loudly is the signal there.

@@ -160,7 +160,13 @@ def link_docs(session: nox.Session) -> None:
 
 @nox.session(venv_backend="uv")
 def build_docs(session: nox.Session) -> None:
-    """Build the documentation."""
+    """Build the documentation with the engine that publishes it.
+
+    Zensical, not MkDocs. `.readthedocs.yml` runs `zensical build` and the `justfile`
+    does too, so a nox session on MkDocs built an artifact nobody publishes: it could
+    stay green through a Zensical-only failure, and the empty-site bug this repo has
+    already hit is exactly that shape (zero HTML at exit 0, `--strict` included).
+    """
     # Install dependencies
     session.run_install(
         "uv",
@@ -170,8 +176,8 @@ def build_docs(session: nox.Session) -> None:
         env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
     )
 
-    # Build the docs
-    session.run("mkdocs", "build", "--clean", external=True)
+    # Build the docs. Zensical has no --clean flag; it rebuilds site/ in place.
+    session.run("zensical", "build", external=True)
 
 
 @nox.session(venv_backend="uv")
@@ -186,7 +192,6 @@ def serve_docs(session: nox.Session) -> None:
         env={"UV_PROJECT_ENVIRONMENT": session.virtualenv.location},
     )
 
-    # Build and serve the docs
-    session.run("mkdocs", "build", "--clean", external=True)
+    # Serve with the publishing engine, matching build_docs and the justfile.
     session.log("###### Starting local server. Press Control+C to stop server ######")
-    session.run("mkdocs", "serve", "-a", "localhost:8080", external=True)
+    session.run("zensical", "serve", "-a", "localhost:8080", external=True)

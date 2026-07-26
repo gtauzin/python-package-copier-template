@@ -1,0 +1,101 @@
+name: Nightly Build
+
+# The canary this repository ships to every generated project and did not run itself.
+#
+# This repo's suite generates projects and runs `nox` inside them, so it depends on the
+# whole external toolchain (copier, uv, ruff, prek, zensical) resolving at head. That
+# makes it the fleet's most exposed repo to upstream drift and, until now, the only one
+# with no scheduled run: a template regression surfaced as red nightlies in seven
+# downstream repos before this repo noticed, so the signal arrived everywhere except
+# where the cause was.
+#
+# Unlike the generated version the matrix is fixed here rather than derived from copier
+# answers, because this repository is not itself a generated project.
+
+on:
+  schedule:
+    # Run every day at 2:30 AM UTC
+    - cron: "30 2 * * *"
+  workflow_dispatch: # Allow manual triggering
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Nightly suite (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          # renovate: datasource=github-releases depName=astral-sh/uv
+          version: "0.10.0"
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      # The full suite, slow and integration tests included: those are the ones that
+      # generate a project and run nox inside it, which is the part upstream drift
+      # actually breaks. A fast-only nightly would be green through exactly the
+      # failures this job exists to catch.
+      - name: Run the full test suite
+        # renovate: datasource=pypi depName=nox
+        run: uvx nox@2026.7.11 -s test-${{ matrix.python-version }}
+
+  create-issue-on-failure:
+    needs: test
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Create issue on failure
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const title = '🔴 Nightly build failed';
+            const body = `The nightly build failed on ${{ github.sha }}.
+
+            **Workflow run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            **Branch:** ${{ github.ref_name }}
+            **Commit:** ${{ github.sha }}
+
+            Please investigate and fix the issue.`;
+
+            // Check if there's already an open issue for nightly build failures
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'nightly-build-failure'
+            });
+
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['nightly-build-failure', 'bug']
+              });
+            } else {
+              // Add a comment to the existing issue
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: `Another nightly build failure occurred:\n\n${body}`
+              });
+            }
