@@ -62,7 +62,7 @@ The version is determined by the Git tag - there is no version file to manually 
 
 ## The Complete Flow in Practice
 
-1. Developer pushes a version tag: `git tag v0.2.0 -m "Release v0.2.0" && git push origin v0.2.0`
+1. Developer pushes a **signed** version tag: `git tag -s v0.2.0 -m "Release v0.2.0" && git push origin v0.2.0` (tags are signed with [gitsign](https://github.com/sigstore/gitsign) keyless Sigstore signing, so the tag is verifiable with no long-lived GPG key; this complements the artifact-level PEP 740 attestations)
 2. `changelog.yml` generates the changelog, builds the package, creates a PR
 3. Maintainer reviews and merges the PR
 4. `publish-release.yml` creates a GitHub Release with artifacts
