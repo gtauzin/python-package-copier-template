@@ -185,7 +185,7 @@ def _required_checks_on_default_branch():
     reached or credentials are absent, which the caller reports as a skip rather than
     a pass -- an unreachable check must never read as a satisfied one.
     """
-    if shutil.which("gh") is None:
+    if shutil.which("gh") is None:  # pragma: no cover - depends on the runner having gh
         return None
     probe = subprocess.run(
         ["gh", "api", "repos/stateful-y/python-package-copier/rulesets"],
@@ -193,7 +193,7 @@ def _required_checks_on_default_branch():
         text=True,
         check=False,
     )
-    if probe.returncode != 0:
+    if probe.returncode != 0:  # pragma: no cover - depends on network and credentials
         return None
     details = []
     for ruleset in json.loads(probe.stdout):
@@ -220,7 +220,7 @@ def test_the_roll_up_merge_gate_is_actually_required():
     maintainer-initiated check would not be enough here.
     """
     required = _required_checks_on_default_branch()
-    if required is None:
+    if required is None:  # pragma: no cover - only when the platform is unreachable
         pytest.skip("hosting platform not reachable or gh not authenticated; state unknown, not assumed satisfied")
     assert "CI passed" in required, (
         f"no active ruleset requires the roll-up check 'CI passed'; required checks are {sorted(required)}. "
@@ -244,6 +244,38 @@ def _repo_workflow_jobs():
     return jobs
 
 
+def unsupported_matched_claims(file_gates, repo_files, repo_hooks, repo_jobs):
+    """Matched claims the given reality does not support.
+
+    Pure, so the discriminating branches can be exercised directly instead of only by
+    mutating the repository and watching the suite go red. Each branch is a distinct
+    way a manifest entry can lie, and a check whose failure paths are never executed is
+    a check nobody has seen work.
+    """
+    unsupported = []
+    for gate, entry in file_gates.items():
+        if entry["status"] != "matched":
+            continue
+
+        if gate.startswith("file:"):
+            name = gate.removeprefix("file:")
+            if name not in repo_files:
+                unsupported.append(f"{gate}: claims matched but {name} does not exist in this repo")
+
+        elif gate.startswith("hook:"):
+            hook_id = gate.removeprefix("hook:")
+            if hook_id not in repo_hooks:
+                unsupported.append(f"{gate}: claims matched but no hook `{hook_id}` runs in this repo")
+
+        else:  # a workflow job
+            equivalent = entry.get("equivalent")
+            if not equivalent:
+                unsupported.append(f"{gate}: claims matched but names no `equivalent:` in this repo to check")
+            elif equivalent not in repo_jobs:
+                unsupported.append(f"{gate}: claims equivalent `{equivalent}`, which this repo does not run")
+    return unsupported
+
+
 def test_a_matched_claim_is_true_not_merely_asserted():
     """`matched` must mean the equivalent exists here, not that someone typed "matched".
 
@@ -251,36 +283,50 @@ def test_a_matched_claim_is_true_not_merely_asserted():
     repo's nightly canary outright left every check green, because "matched" was a
     string in a YAML file that nothing compared against reality. That is precisely the
     defect this capability exists to eliminate, reproduced inside its own mechanism.
-
-    Two of the three gate shapes verify structurally. A shipped root *file* must exist
-    here by name; a shipped *hook* id must appear in this repo's hook config. Workflow
-    *jobs* cannot be matched by name, because this repo's jobs are named for testing a
-    template rather than a package, so a matched job entry must name its counterpart
-    with an `equivalent:` field, and that counterpart must exist.
     """
-    missing = []
-    for gate, entry in _manifest()["file_gates"].items():
-        if entry["status"] != "matched":
-            continue
+    repo_files = {p.name for p in _REPO.iterdir()}
+    unsupported = unsupported_matched_claims(
+        _manifest()["file_gates"], repo_files, _repo_hook_ids(), _repo_workflow_jobs()
+    )
+    assert not unsupported, "manifest claims that reality does not support:\n  " + "\n  ".join(unsupported)
 
-        if gate.startswith("file:"):
-            name = gate.removeprefix("file:")
-            if not (_REPO / name).exists():
-                missing.append(f"{gate}: claims matched but {name} does not exist in this repo")
 
-        elif gate.startswith("hook:"):
-            hook_id = gate.removeprefix("hook:")
-            if hook_id not in _repo_hook_ids():
-                missing.append(f"{gate}: claims matched but no hook `{hook_id}` runs in this repo")
+@pytest.mark.parametrize(
+    ("label", "gates", "expected_fragment"),
+    [
+        ("a matched file that is not here", {"file:GONE.md": {"status": "matched"}}, "does not exist"),
+        ("a matched hook this repo does not run", {"hook:ghost": {"status": "matched"}}, "no hook `ghost`"),
+        ("a matched job naming no equivalent", {"x.yml:job": {"status": "matched"}}, "names no `equivalent:`"),
+        (
+            "a matched job whose named equivalent is absent",
+            {"x.yml:job": {"status": "matched", "equivalent": "y.yml:nope"}},
+            "which this repo does not run",
+        ),
+    ],
+)
+def test_every_way_a_matched_claim_can_lie_is_detected(label, gates, expected_fragment):
+    """Each failure branch reports, rather than one branch standing in for the rest.
 
-        else:  # a workflow job
-            equivalent = entry.get("equivalent")
-            if not equivalent:
-                missing.append(f"{gate}: claims matched but names no `equivalent:` in this repo to check")
-            elif equivalent not in _repo_workflow_jobs() and equivalent != "not-a-workflow-job":
-                missing.append(f"{gate}: claims equivalent `{equivalent}`, which this repo does not run")
+    These are the lines that had never executed in a passing run. Exercising them here
+    is what makes the assertion above meaningful: an entry can be wrong in four distinct
+    ways and each has now been watched to fail.
+    """
+    unsupported = unsupported_matched_claims(gates, repo_files=set(), repo_hooks=set(), repo_jobs=set())
+    assert len(unsupported) == 1, f"{label}: expected exactly one complaint, got {unsupported}"
+    assert expected_fragment in unsupported[0], f"{label}: complaint did not explain itself: {unsupported[0]}"
 
-    assert not missing, "manifest claims that reality does not support:\n  " + "\n  ".join(missing)
+
+def test_a_supported_matched_claim_produces_no_complaint():
+    """And a truthful manifest must stay silent, or the check would be unusable."""
+    gates = {
+        "file:README.md": {"status": "matched"},
+        "hook:ruff": {"status": "matched"},
+        "a.yml:job": {"status": "matched", "equivalent": "b.yml:other"},
+        "c.yml:skipped": {"status": "excluded", "reason": "not applicable, and long enough to be substantive"},
+    }
+    assert not unsupported_matched_claims(
+        gates, repo_files={"README.md"}, repo_hooks={"ruff"}, repo_jobs={"b.yml:other"}
+    )
 
 
 def _ruleset(enforcement="active", contexts=("CI passed",), rule_type="required_status_checks"):

@@ -176,6 +176,19 @@ def test_the_agent_instruction_files_are_tracked():
         assert ignored.returncode != 0, f"{rel} is gitignored, so it can never be reviewed or tested"
 
 
+def instruction_body_difference(first, second):
+    """Lines present in one instruction body and not the other, ignoring blanks.
+
+    Extracted so the disagreement path can be exercised directly. It is the branch
+    that only runs when the two files have already drifted, which is exactly when it
+    needs to be right, and exactly when nobody has ever seen it run.
+    """
+    return (
+        [ln for ln in first if ln and ln not in second],
+        [ln for ln in second if ln and ln not in first],
+    )
+
+
 def test_the_agent_instruction_files_agree_on_shared_content():
     """The two files carry the same guidance below their titles.
 
@@ -190,14 +203,12 @@ def test_the_agent_instruction_files_agree_on_shared_content():
         bodies.append((rel, [ln.rstrip() for ln in body]))
 
     (first_rel, first), (second_rel, second) = bodies
-    if first != second:
-        only_first = [ln for ln in first if ln and ln not in second]
-        only_second = [ln for ln in second if ln and ln not in first]
-        raise AssertionError(
-            f"{first_rel} and {second_rel} disagree.\n"
-            f"  only in {first_rel}: {only_first[:3]}\n"
-            f"  only in {second_rel}: {only_second[:3]}"
-        )
+    only_first, only_second = instruction_body_difference(first, second)
+    assert not (only_first or only_second), (
+        f"{first_rel} and {second_rel} disagree.\n"
+        f"  only in {first_rel}: {only_first[:3]}\n"
+        f"  only in {second_rel}: {only_second[:3]}"
+    )
 
 
 def test_instruction_files_name_no_path_that_does_not_exist():
@@ -212,7 +223,7 @@ def test_instruction_files_name_no_path_that_does_not_exist():
     for rel in _INSTRUCTION_FILES:
         text = (_REPO / rel).read_text(encoding="utf-8")
         for cited in sorted(set(path_like.findall(text))):
-            if any(ch in cited for ch in "<>{}"):
+            if any(ch in cited for ch in "<>{}"):  # pragma: no cover - no current citation is templated
                 continue  # a placeholder, not a literal path
             # Tracked, not merely present. Checking existence made this test weaker on
             # a maintainer's machine than in CI: `openspec/` is gitignored, so a cited
@@ -229,3 +240,15 @@ def test_instruction_files_name_no_path_that_does_not_exist():
                 f"{rel} cites `{cited}`, which git does not track. Whoever clones this repo will not find it, "
                 "even if it exists on the machine the guidance was written on."
             )
+
+
+def test_instruction_body_difference_reports_each_side():
+    """Both directions are reported, so a one-sided read cannot hide a missing section.
+
+    The section instructing that both files be kept in step existed in only one of
+    them. A comparison that reported only additions would have called that clean.
+    """
+    only_first, only_second = instruction_body_difference(["shared", "", "extra-a"], ["shared", "extra-b"])
+    assert only_first == ["extra-a"]
+    assert only_second == ["extra-b"]
+    assert instruction_body_difference(["same", ""], ["same"]) == ([], [])

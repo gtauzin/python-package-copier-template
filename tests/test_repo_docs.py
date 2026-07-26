@@ -129,7 +129,7 @@ def test_repo_docs_build_ships_content_not_an_empty_site(tmp_path):
     one output directory. Only the inputs a build needs are copied, so the copy is
     cheap and a stray file in the repo cannot influence the result.
     """
-    if shutil.which("uv") is None:
+    if shutil.which("uv") is None:  # pragma: no cover - uv is present wherever this suite runs
         pytest.skip("uv is required to build the docs")
 
     engine = _publishing_engine()
