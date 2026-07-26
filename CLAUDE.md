@@ -1,4 +1,4 @@
-# Python Package Copier - AI Instructions
+# Python Package Copier
 
 ## Project Overview
 This is a **Copier template** for generating modern Python packages.

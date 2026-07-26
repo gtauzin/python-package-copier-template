@@ -188,8 +188,11 @@ Desktop.ini
 /.github/prompts/
 /.github/skills/openspec-*/
 
-# AI Assistant Instructions
-/CLAUDE.md
+# AI assistant instructions are NOT ignored. CLAUDE.md is project content: it is the
+# file that tells every assistant how this repo works, and ignoring it meant it never
+# entered a pull request, was never reviewed, did not survive a clone, and drifted from
+# its tracked Copilot counterpart by exactly the section instructing that both be kept
+# in step. An instruction file outside version control cannot be tested.
 /CLAUDE_INSTRUCTIONS.md
 /.claude.md
 /claude-instructions.md

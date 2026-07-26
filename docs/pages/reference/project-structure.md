@@ -41,6 +41,7 @@ my-package/
 ├── .pre-commit-config.yaml
 ├── .readthedocs.yml
 ├── CHANGELOG.md
+├── CLAUDE.md
 ├── CONTRIBUTING.md
 ├── justfile
 ├── LICENSE
@@ -66,6 +67,7 @@ my-package/
 | `.editorconfig` | Editor-neutral formatting settings |
 | `LICENSE` | Project license (based on `license` template variable) |
 | `CHANGELOG.md` | Auto-generated changelog from conventional commits |
+| `CLAUDE.md` | Project instructions for AI coding assistants. Seeded once, then owned by your project: template updates never overwrite it (see [Update from Template](../how-to/update-template.md#claudemd-and-other-seed-once-files)) |
 | `CONTRIBUTING.md` | Quick-start contributing guide (redirects to full docs) |
 | `README.md` | Project overview, badges, installation instructions |
 

@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import yaml
 from _build_layout import BUILD_DIR
 
 
@@ -5079,3 +5080,39 @@ def test_generated_index_pages_introduce_their_subpages(copie_session_default):
         assert "<!-- SUBPAGES -->" in index.read_text(encoding="utf-8"), (
             f"the {quadrant} index describes its quadrant but never lists its own pages"
         )
+
+
+def test_claude_md_is_seeded_and_committable(copie_session_default):
+    """A generated project gets a project-instructions file it is allowed to commit.
+
+    The template used to ignore six `CLAUDE*` filename variants and ship no
+    replacement, so no generated project could record its own invariants anywhere the
+    repository could see. Across the fleet that left the knowledge describing seven
+    projects living outside all seven of them.
+    """
+    project = copie_session_default.project_dir
+    claude_md = project / "CLAUDE.md"
+    assert claude_md.is_file(), "no CLAUDE.md was seeded into the generated project"
+    assert claude_md.stat().st_size > 200, "the seeded CLAUDE.md is empty or a stub"
+
+    gitignore = (project / ".gitignore").read_text(encoding="utf-8")
+    for variant in ("CLAUDE.md", "CLAUDE_INSTRUCTIONS.md", ".claude.md", "claude-prompt.md"):
+        assert not re.search(rf"^{re.escape(variant)}$", gitignore, re.MULTILINE), (
+            f"{variant} is still ignored, so a project cannot commit its own instructions"
+        )
+
+
+def test_claude_md_is_registered_as_seed_once():
+    """`CLAUDE.md` must be in `_skip_if_exists`, or an update reverts a project's edits.
+
+    Copier applies an update as a diff against the *template's* copy. Once a project
+    has rewritten this file wholesale, one shifted line rejects the whole hunk and the
+    page reverts to the stub, with the project's content left in a `.rej` nobody
+    reads. That is not hypothetical: v0.22.0 did exactly this to five projects'
+    getting-started.md from a whitespace-only change. `_skip_if_exists` is the only
+    thing copier itself honours here; the update skill's classification is advisory.
+    """
+    config = yaml.safe_load(Path("copier.yml").read_text(encoding="utf-8"))
+    assert "CLAUDE.md" in config["_skip_if_exists"], (
+        "CLAUDE.md is shipped but not seed-once; a template update would revert every project's own instructions"
+    )

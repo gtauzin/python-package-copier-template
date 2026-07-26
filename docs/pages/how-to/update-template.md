@@ -93,6 +93,28 @@ Copier respects your local changes. Files you've customized are merged, not over
 - Custom content you added to documentation is preserved
 - Dependencies you added to `pyproject.toml` are preserved
 
+### CLAUDE.md and other seed-once files
+
+A few files are delivered **once**, when your project is generated, and then never
+again. `CLAUDE.md` is one of them, alongside your logo and favicon, the documentation
+landing page, and the getting-started tutorial.
+
+These are files every project rewrites completely. Once yours no longer resembles the
+template's version, there is nothing left to merge: an update applied as a diff against
+the template's copy would reject the whole change and revert your page to the starter
+content, leaving your work in a `.rej` file nobody reads. That is not a theoretical
+risk. One template release changed a single blank line and replaced five projects'
+hand-written getting-started pages with the 74-line stub.
+
+So the template stops delivering them. Rewrite `CLAUDE.md` however you like: record why
+a dependency is pinned, which template assumptions your project breaks, what a failing
+check actually means. Updates will leave it alone, and you will not see a conflict for
+it because there is no conflict to have.
+
+The trade is that improvements the template later makes to these files do **not** reach
+you automatically. If you want them, copy them across by hand. That is deliberate: a
+template that can append to a page it does not own can also delete from it.
+
 ## AI-Assisted Updates
 
 If you use GitHub Copilot or a similar AI coding assistant, you can ask it to handle the update for you. The template ships with an **`update-from-template` skill** that automates the full workflow:

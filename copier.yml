@@ -52,6 +52,13 @@ _skip_if_exists:
   # file "must never be overwritten" -- that classification is advisory and
   # copier ignores it; this line is what enforces it.
   - "docs/pages/examples/index.md"
+  # Project instructions for AI assistants. Seeded once so a new project has
+  # something to start from, then never delivered again. Every project rewrites this
+  # wholesale -- it exists to record what is true about *that* project -- so the
+  # template's version survives nowhere, and an update applied as a diff against the
+  # template's copy would reject and revert it, exactly as v0.22.0 did to five
+  # projects' getting-started.md. There is no merge to lose here either.
+  - "CLAUDE.md"
 
 _envops:
   block_start_string: "{%"
