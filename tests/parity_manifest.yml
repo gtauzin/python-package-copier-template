@@ -116,18 +116,20 @@ file_gates:
     status: matched
     reason: same issue-filing job, with the same dedupe-by-label behaviour.
   codeql.yml:analyze:
-    status: excluded
+    status: matched
+    equivalent: codeql.yml:analyze
     reason: >-
-      NOT YET RESOLVED AS A DELIBERATE SKIP. This repo is public, so CodeQL is free
-      and the template's own public-repo gate would ship it. It is absent here only
-      because harden-fleet-security shipped these files to the template and never to
-      this repo. Task 3.9 decides whether to adopt or genuinely exclude; until then
-      this entry records a known shortfall rather than a judgment.
+      Adopted. This repo is public so CodeQL is free, and it has Python worth scanning
+      (the test suite and noxfile). It was absent only because harden-fleet-security
+      shipped it to the template and never here, which is the shortfall this capability
+      exists to surface.
   scorecard.yml:analysis:
-    status: excluded
+    status: matched
+    equivalent: scorecard.yml:analysis
     reason: >-
-      NOT YET RESOLVED AS A DELIBERATE SKIP. Same shortfall as codeql above: public
-      repo, free service, shipped to the template only. Recorded, not justified.
+      Adopted. Scorecard independently grades whether the other controls remain in
+      force, which is the right shape of check for a repo whose merge gate went
+      unenforced for four releases with nothing noticing.
 
   # --- shipped root files ------------------------------------------------
   # Derived from the rendered project root. Jobs and hooks are not the only shape a
@@ -169,12 +171,11 @@ file_gates:
       ruleset currently enforces review without it. Revisit if review ever needs to route
       by path; until then a single-maintainer CODEOWNERS adds a file and no signal.
   file:SECURITY.md:
-    status: excluded
+    status: matched
     reason: >-
-      NOT YET RESOLVED AS A DELIBERATE SKIP. A disclosure policy costs nothing, is a
-      static file, and satisfies an OpenSSF Scorecard check. It is absent here only
-      because harden-fleet-security shipped it to the template and never to this repo.
-      Recorded as a known shortfall, not a justification.
+      Adopted, with wording corrected for what this repo is: a fix reaches a generated
+      project only when that project runs `copier update`, so there is no patched
+      release to consume. Also satisfies an OpenSSF Scorecard check.
 
   # --- pre-commit / prek hooks --------------------------------------------
   hook:trailing-whitespace: {status: matched, reason: same builtin hook.}
