@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.36.0] - 2026-07-26
+
+This **minor release** includes 2 commits.
+
+
+### Features
+- Use tokenless Codecov OIDC upload for public repos  ([#248](https://github.com/stateful-y/python-package-copier/pull/248)) by @gtauzin
+
+### Bug Fixes
+- Pin ossf/scorecard-action to a real tag (v2.4.4)  ([#247](https://github.com/stateful-y/python-package-copier/pull/247)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.35.0] - 2026-07-26
 
 This **minor release** includes 1 commit.
