@@ -123,6 +123,7 @@ select = [
     "C4",  # flake8-comprehensions
     "UP",  # pyupgrade
     "PL",  # Pylint
+    "S",   # flake8-bandit (security)
     "T10", # flake8-debugger
     "T201", # Print statement
 ]
@@ -137,7 +138,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**/*" = ["T201", "PLR2004", "PLC0415"]
+"tests/**/*" = ["T201", "PLR2004", "PLC0415", "S101", "S603", "S607", "S506"]  # asserts, subprocess to git/uv/copier, and yaml.load of generated files are expected in the template test harness
 
 [tool.rumdl]
 flavor = "mkdocs"

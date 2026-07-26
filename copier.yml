@@ -113,6 +113,20 @@ license:
     - "GPL-3.0"
     - "Proprietary"
 
+repo_visibility:
+  type: str
+  # Drives which paid, visibility-sensitive services are provisioned. Almost every
+  # "paid" security service (CodeQL, Codecov, GitHub-native secret scanning) is paid
+  # only because the repository is private -- each is free on public repos. Capturing
+  # visibility once lets the template default those services on for public repos and
+  # substitute the free OSS equivalents (ruff S, gitleaks) on private ones, instead of
+  # exposing one flag per service.
+  help: "Repository visibility (public repos get free paid-tier services; private repos get OSS equivalents)"
+  default: "public"
+  choices:
+    - "public"
+    - "private"
+
 min_python_version:
   type: str
   help: "Minimum Python version"
@@ -138,6 +152,15 @@ include_actions:
   type: bool
   help: "Include GitHub Actions CI/CD workflows?"
   default: true
+
+include_codecov:
+  type: bool
+  # Codecov coverage upload. Free on public repos, a paid org plan on private ones, so
+  # the default follows repo_visibility. Overridable: a private project willing to pay
+  # can set this true. Gated on include_actions because the upload runs in CI.
+  help: "Upload coverage to Codecov? (free on public repos, paid on private)"
+  default: "{{ repo_visibility == 'public' }}"
+  when: "{{ include_actions }}"
 
 uv_version:
   type: str

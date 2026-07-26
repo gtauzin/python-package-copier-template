@@ -5,13 +5,25 @@ on:
     tags:
       - 'v*.*.*'
 
+# Least-privilege default: read-only token; the changelog job widens as needed.
+permissions:
+  contents: read
+
 jobs:
   changelog:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
+      # Mint a short-lived, scoped token from the fleet automation GitHub App. A PR
+      # opened with the default GITHUB_TOKEN does not trigger CI or the label-gated
+      # publish, so the automation needs a distinct identity; the App token gives it
+      # one without a long-lived personal access token.
+      - name: Generate a token from the fleet automation GitHub App
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
@@ -63,7 +75,7 @@ jobs:
       - name: Create Pull Request for CHANGELOG
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.CHANGELOG_AUTOMATION_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
           add-paths: |
             CHANGELOG.md
           commit-message: "chore(release): update CHANGELOG.md for ${{ steps.changelog.outputs.version }}"
