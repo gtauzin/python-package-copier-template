@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.35.0] - 2026-07-26
+
+This **minor release** includes 1 commit.
+
+
+### Bug Fixes
+- Broaden generated tests/** ruff S-ignore for common test patterns  ([#245](https://github.com/stateful-y/python-package-copier/pull/245)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.34.0] - 2026-07-26
 
 This **minor release** includes 1 commit.
