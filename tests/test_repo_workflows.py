@@ -214,5 +214,18 @@ def test_instruction_files_name_no_path_that_does_not_exist():
         for cited in sorted(set(path_like.findall(text))):
             if any(ch in cited for ch in "<>{}"):
                 continue  # a placeholder, not a literal path
-            target = _REPO / cited.rstrip("/")
-            assert target.exists(), f"{rel} cites `{cited}`, which does not exist on this branch"
+            # Tracked, not merely present. Checking existence made this test weaker on
+            # a maintainer's machine than in CI: `openspec/` is gitignored, so a cited
+            # path under it resolved locally and vanished in a fresh clone. CI caught a
+            # citation that pointed at nothing for every reader but the author. Asking
+            # git makes both environments agree, and matches what the guidance means.
+            tracked = subprocess.run(
+                ["git", "ls-files", "--error-unmatch", "--", cited.rstrip("/")],
+                cwd=_REPO,
+                capture_output=True,
+                check=False,
+            )
+            assert tracked.returncode == 0, (
+                f"{rel} cites `{cited}`, which git does not track. Whoever clones this repo will not find it, "
+                "even if it exists on the machine the guidance was written on."
+            )
