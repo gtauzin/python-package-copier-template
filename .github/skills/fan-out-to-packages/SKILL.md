@@ -147,7 +147,31 @@ Group a section index under `##` headings only when it is big enough to need it 
   stub, content surviving only in a `.rej` nobody reads. A **whitespace-only** template
   change replaced a 244-line curated tutorial with a 74-line placeholder in one release.
 - `_skip_if_exists` now covers the 4 logos, `docs/index.md`,
-  `docs/pages/tutorials/getting-started.md` and `docs/pages/examples/index.md`.
+  `docs/pages/tutorials/getting-started.md`, `docs/pages/examples/index.md` and `CLAUDE.md`.
+
+**A conflicted `.gitignore` hides the delivery you are verifying.** Fired on yohou in the
+v0.38.0 fan-out. The project had added `reviews/` to the same block the template removed,
+so `.gitignore` came out unmerged. Three independent signals said the repo was clean:
+
+```text
+copier update  -> exit 0
+.rej sweep     -> no files
+git status     -> the newly-delivered CLAUDE.md not listed
+```
+
+All three wrong. The unresolved `.gitignore` still contained `CLAUDE.md`, so git treated
+the delivered file as **ignored** and omitted it from `status` -- while the file sat on disk
+the whole time. Copier writes markers in place and leaves the file `UU`; it does not exit
+non-zero and produces no `.rej` for that path. `.gitignore` is the one file whose own
+conflicted content changes what `git status` reports, so it can conceal the delivery being
+checked.
+
+- Sweep for conflict markers as a **first-class check**, equal to the `.rej` sweep, not as
+  a follow-up. `grep -rlE '^(<<<<<<<|>>>>>>>)' --exclude-dir=.git .`
+- When `.gitignore` is among the changed files, **`git status` is not evidence of what was
+  delivered.** Verify by path on disk and `git ls-files --error-unmatch <path>`.
+- Resolve by keeping **both** intents. Here: the template's removal of its block, and the
+  project's own `reviews/` entry moved to a section of its own with a comment saying why.
 - **`mkdocs.yml` is NOT protected, and a nav-touching release clobbers it every time.**
   Not a risk — a certainty. v0.26.0 removed one nav line and the clobber fired in **7 of 7**
   repos: 227 curated nav leaves collapsed to 87. Once a repo's nav has diverged, the hunk
