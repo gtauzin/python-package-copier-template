@@ -116,6 +116,38 @@ jobs:
       - name: Scan for secrets
         run: gitleaks detect --source . --redact --verbose
 
+  # Coverage upload to Codecov via GitHub OIDC (tokenless -- no CODECOV_TOKEN). This makes
+  # the template repo its own Codecov project AND is the canary that validates the OIDC
+  # path the template now ships to generated public repos. Deliberately NOT in the
+  # ci-passed roll-up: a Codecov outage (the thing under test) must not block merges.
+  coverage:
+    name: Coverage (Codecov via OIDC)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          cache-dependency-glob: "pyproject.toml"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Run tests with coverage
+        run: uv run --group tests pytest tests/ -m "not slow and not integration" -n auto --cov=tests --cov-report=xml --cov-fail-under=0
+
+      - name: Upload coverage to Codecov (tokenless via OIDC)
+        uses: codecov/codecov-action@v7
+        with:
+          use_oidc: true
+          files: coverage.xml
+          fail_ci_if_error: true
+
   # Single required status check. The branch ruleset requires this one job, not the
   # individual jobs above: test-fast is a matrix (its check-run names vary by OS/Python and
   # differ between draft and ready PRs) and test-full is skipped on draft PRs, so neither

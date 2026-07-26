@@ -19,7 +19,11 @@ jobs:
           {%- for v in versions if v >= min_python_version and v <= max_python_version -%}
             "{{ v }}"{{ ", " if not loop.last else "" }}
           {%- endfor -%}]
-{% if include_codecov %}    env:
+{% if include_codecov and repo_visibility == 'public' %}    # Codecov upload authenticates via GitHub OIDC (tokenless) -- no stored CODECOV_TOKEN.
+    permissions:
+      contents: read
+      id-token: write
+{% elif include_codecov %}    env:
       CODECOV_TOKEN: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
 {% endif %}    steps:
       - uses: actions/checkout@v7
@@ -47,10 +51,11 @@ jobs:
 
 {% if include_codecov %}      - name: Upload coverage reports
         uses: codecov/codecov-action@v7
-        if: {% raw %}${{ matrix.python-version == '3.12' && env.CODECOV_TOKEN != '' }}{% endraw %}
+        if: {% raw %}${{ matrix.python-version == '3.12'{% endraw %}{% if repo_visibility != 'public' %}{% raw %} && env.CODECOV_TOKEN != ''{% endraw %}{% endif %}{% raw %} }}{% endraw %}
         with:
-          token: {% raw %}${{ env.CODECOV_TOKEN }}{% endraw %}
-{% endif %}
+{% if repo_visibility == 'public' %}          use_oidc: true
+{% else %}          token: {% raw %}${{ env.CODECOV_TOKEN }}{% endraw %}
+{% endif %}{% endif %}
   create-issue-on-failure:
     needs: test
     if: {% raw %}${{ failure() }}{% endraw %}

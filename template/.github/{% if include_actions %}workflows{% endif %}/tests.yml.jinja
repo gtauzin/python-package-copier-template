@@ -107,7 +107,11 @@ jobs:
           {%- for v in versions if v >= min_python_version and v <= max_python_version -%}
             "{{ v }}"{{ ", " if not loop.last else "" }}
           {%- endfor -%}]
-{% if include_codecov %}    env:
+{% if include_codecov and repo_visibility == 'public' %}    # Codecov upload authenticates via GitHub OIDC (tokenless) -- no stored CODECOV_TOKEN.
+    permissions:
+      contents: read
+      id-token: write
+{% elif include_codecov %}    env:
       CODECOV_TOKEN: {% raw %}${{ secrets.CODECOV_TOKEN }}{% endraw %}
 {% endif %}
     steps:
@@ -140,18 +144,20 @@ jobs:
         run: nox -s test --python {% raw %}${{ matrix.python-version }}{% endraw %}
 
 {% if include_codecov %}      - name: Upload test results to Codecov
-        if: {% raw %}${{ !cancelled() && matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}' && env.CODECOV_TOKEN != '' }}{% endraw %}
+        if: {% raw %}${{ !cancelled() && matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}'{% endraw %}{% if repo_visibility != 'public' %}{% raw %} && env.CODECOV_TOKEN != ''{% endraw %}{% endif %}{% raw %} }}{% endraw %}
         uses: codecov/test-results-action@v1
         with:
-          token: {% raw %}${{ env.CODECOV_TOKEN }}{% endraw %}
-          file: {% raw %}'${{ github.workspace }}/junit.${{ matrix.python-version }}.xml'{% endraw %}
+{% if repo_visibility == 'public' %}          use_oidc: true
+{% else %}          token: {% raw %}${{ env.CODECOV_TOKEN }}{% endraw %}
+{% endif %}          file: {% raw %}'${{ github.workspace }}/junit.${{ matrix.python-version }}.xml'{% endraw %}
 
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v7
-        if: {% raw %}${{ matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}' && env.CODECOV_TOKEN != '' }}{% endraw %}
+        if: {% raw %}${{ matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}'{% endraw %}{% if repo_visibility != 'public' %}{% raw %} && env.CODECOV_TOKEN != ''{% endraw %}{% endif %}{% raw %} }}{% endraw %}
         with:
-          token: {% raw %}${{ env.CODECOV_TOKEN }}{% endraw %}
-          files: {% raw %}'${{ github.workspace }}/coverage.${{ matrix.python-version }}.xml'{% endraw %}
+{% if repo_visibility == 'public' %}          use_oidc: true
+{% else %}          token: {% raw %}${{ env.CODECOV_TOKEN }}{% endraw %}
+{% endif %}          files: {% raw %}'${{ github.workspace }}/coverage.${{ matrix.python-version }}.xml'{% endraw %}
           env_vars: OS,PYTHON
           fail_ci_if_error: true
 {% endif %}
