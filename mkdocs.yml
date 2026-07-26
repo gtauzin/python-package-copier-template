@@ -90,6 +90,7 @@ nav:
   - Explanation:
     - Architecture Overview: pages/explanation/architecture.md
     - Release Process: pages/explanation/release-process.md
+    - Security: pages/explanation/security.md
   # Reference is last on purpose: it is the section you arrive at knowing what
   # you want, so it earns its place by being findable, not by being passed
   # through -- learn, do, understand, then look things up. Same order the

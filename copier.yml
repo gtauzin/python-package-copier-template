@@ -102,6 +102,15 @@ github_username:
   help: "GitHub username or organization"
   default: "stateful-y"
 
+code_owner:
+  type: str
+  # Written into CODEOWNERS. A GitHub username (@user) or team (@org/team). Defaults to
+  # a maintainer rather than github_username, because a bare organization name is not a
+  # valid code owner (GitHub flags it) -- the owning org is `github_username`, but the
+  # reviewer must be a person or team.
+  help: "Default code owner for CODEOWNERS (@user or @org/team)"
+  default: "@gtauzin"
+
 license:
   type: str
   help: "Project license"
