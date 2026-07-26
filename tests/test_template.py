@@ -4252,7 +4252,8 @@ def test_expected_action_pins_actually_resolve_on_github():
     gh = shutil.which("gh")
     if gh is None:
         pytest.skip("gh CLI not available")
-    unresolved = {}
+    missing = {}
+    uncheckable = []
     for action, ref in EXPECTED_ACTION_PINS.items():
         repo = "/".join(action.split("/")[:2])  # github/codeql-action/init -> github/codeql-action
         result = subprocess.run(
@@ -4262,15 +4263,26 @@ def test_expected_action_pins_actually_resolve_on_github():
             timeout=30,
             check=False,
         )
-        if result.returncode != 0:
-            err = result.stderr.lower()
-            if any(s in err for s in ("rate limit", "could not resolve host", "timeout", "connection")):
-                pytest.skip(f"network/gh unavailable: {result.stderr.strip()[:120]}")
-            unresolved[f"{action}@{ref}"] = result.stderr.strip()[:120]
-    assert not unresolved, (
-        f"these pinned action refs do not resolve on GitHub (a pin that does not exist passes the "
-        f"consistency check but fails at runtime on every generated repo): {unresolved}"
+        if result.returncode == 0:
+            continue
+        err = (result.stderr + result.stdout).lower()
+        if "not found" in err or "404" in err or "no commit found" in err:
+            # Definitive: the ref does not exist. This is the failure worth catching.
+            missing[f"{action}@{ref}"] = result.stderr.strip()[:120]
+        else:
+            # Cannot verify: gh unauthenticated (no GH_TOKEN, e.g. the CI test env),
+            # rate limited, or offline. Do NOT fail on these -- only a real 404 fails.
+            uncheckable.append(f"{action}@{ref}")
+    # A definitive 404 fails regardless of any refs we could not check.
+    assert not missing, (
+        f"these pinned action refs do not exist on GitHub (a non-existent pin passes the consistency "
+        f"check but fails at runtime on every generated repo -- as ossf/scorecard-action@v2 did): {missing}"
     )
+    if uncheckable:
+        pytest.skip(
+            f"could not verify {len(uncheckable)}/{len(EXPECTED_ACTION_PINS)} pins "
+            f"(gh unauthenticated or network unavailable); e.g. {uncheckable[0]}"
+        )
 
 
 def test_nav_order_is_diataxis_with_reference_last(copie_session_default, copie_minimal):
