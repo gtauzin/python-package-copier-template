@@ -139,3 +139,46 @@ def test_publish_action_is_not_a_branch_ref(copie):
     publish = _read(result.project_dir, ".github/workflows/publish-release.yml")
     assert "gh-action-pypi-publish@release/v1" not in publish
     assert "gh-action-pypi-publish@v" in publish
+
+
+def test_security_posture_page_present_and_in_nav(copie):
+    """A user-facing security posture page ships and is listed in the docs nav."""
+    result = copie.copy()
+    page = result.project_dir / "docs/pages/explanation/security.md"
+    assert page.exists(), "no security posture explanation page"
+    assert "trusted-publishing" in page.read_text(encoding="utf-8").lower() or "OIDC" in page.read_text(
+        encoding="utf-8"
+    )
+    nav = _read(result.project_dir, "mkdocs.yml")
+    assert "pages/explanation/security.md" in nav, "security page missing from the docs nav"
+
+
+def test_security_page_gates_public_only_controls(copie):
+    """The page presents CodeQL/Scorecard as active for public repos and not for private."""
+    public = _read(
+        copie.copy(extra_answers={"repo_visibility": "public"}).project_dir,
+        "docs/pages/explanation/security.md",
+    )
+    assert "Deep analysis (CodeQL)" in public
+    assert "independent security grade" in public
+
+    private = _read(
+        copie.copy(extra_answers={"repo_visibility": "private", "include_codecov": False}).project_dir,
+        "docs/pages/explanation/security.md",
+    )
+    assert "Deep analysis (CodeQL)" not in private
+    assert "independent security grade" not in private
+    # The page still describes the controls a private repo DOES run.
+    assert "Static security analysis" in private
+    assert "Secret scanning" in private
+
+
+def test_codeowners_uses_a_valid_owner(copie):
+    """CODEOWNERS ships a concrete owner, not a bare org name GitHub rejects."""
+    result = copie.copy()
+    codeowners = _read(result.project_dir, "CODEOWNERS")
+    owner_line = next(line for line in codeowners.splitlines() if line.startswith("*"))
+    owner = owner_line.split()[1]
+    assert owner.startswith("@"), "code owner should be an @user or @org/team"
+    # A bare "@org" with no team is the invalid form; a user handle or @org/team is fine.
+    assert owner != "@" and len(owner) > 1

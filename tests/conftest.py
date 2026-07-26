@@ -26,6 +26,7 @@ class CopierTestFixture:
             "author_name": "Test Author",
             "author_email": "test@example.com",
             "github_username": "testuser",
+            "code_owner": "@testowner",
             "version": "0.1.0",
             "min_python_version": "3.11",
             "max_python_version": "3.14",
