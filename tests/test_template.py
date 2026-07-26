@@ -4184,7 +4184,7 @@ EXPECTED_ACTION_PINS = {
     "github/codeql-action/analyze": "v3",
     "github/codeql-action/init": "v3",
     "github/codeql-action/upload-sarif": "v3",
-    "ossf/scorecard-action": "v2",
+    "ossf/scorecard-action": "v2.4.4",
     "peter-evans/create-pull-request": "v8",
     "pypa/gh-action-pypi-publish": "v1.13.0",
     "taiki-e/install-action": "v2",
@@ -4232,6 +4232,45 @@ def test_action_pins_are_consistent_and_current(copie_session_default):
     )
     wrong = {a: (v, EXPECTED_ACTION_PINS[a]) for a, v in actual.items() if EXPECTED_ACTION_PINS[a] != v}
     assert not wrong, f"pins disagree with what the fleet runs (action: template -> expected): {wrong}"
+
+
+@pytest.mark.slow
+def test_expected_action_pins_actually_resolve_on_github():
+    """Every pin in EXPECTED_ACTION_PINS resolves to a real ref on GitHub.
+
+    ``test_action_pins_are_consistent_and_current`` only checks the template's pins are
+    self-consistent and match this map -- it cannot tell whether a tag *exists*. That
+    gap shipped ``ossf/scorecard-action@v2`` (no such tag; the action publishes only
+    ``vX.Y.Z`` tags), which passed every test and then failed at runtime on every
+    generated repo with "unable to find version v2". This closes it by resolving each
+    pinned ref against GitHub.
+
+    Network-gated: skips cleanly when ``gh`` or the network is unavailable, so it is a
+    CI safety net (CI has an authenticated ``gh`` and no rate limit) rather than an
+    offline tripwire. Marked ``slow`` so it stays out of the fast feedback loop.
+    """
+    gh = shutil.which("gh")
+    if gh is None:
+        pytest.skip("gh CLI not available")
+    unresolved = {}
+    for action, ref in EXPECTED_ACTION_PINS.items():
+        repo = "/".join(action.split("/")[:2])  # github/codeql-action/init -> github/codeql-action
+        result = subprocess.run(
+            [gh, "api", f"repos/{repo}/commits/{ref}", "--jq", ".sha"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+        if result.returncode != 0:
+            err = result.stderr.lower()
+            if any(s in err for s in ("rate limit", "could not resolve host", "timeout", "connection")):
+                pytest.skip(f"network/gh unavailable: {result.stderr.strip()[:120]}")
+            unresolved[f"{action}@{ref}"] = result.stderr.strip()[:120]
+    assert not unresolved, (
+        f"these pinned action refs do not resolve on GitHub (a pin that does not exist passes the "
+        f"consistency check but fails at runtime on every generated repo): {unresolved}"
+    )
 
 
 def test_nav_order_is_diataxis_with_reference_last(copie_session_default, copie_minimal):
