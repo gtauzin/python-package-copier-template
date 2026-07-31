@@ -35,7 +35,6 @@ class CopierTestFixture:
             "include_actions": True,
             "include_examples": True,
             "include_codecov": True,
-            "uv_version": "0.10.0",
             "renovate_preset": "",
         }
 
@@ -65,6 +64,18 @@ class CopierResult:
         self.result = result
         self.exit_code = 0 if project_dir.exists() else 1
         self.exception = None
+        # What the template actually rendered into the project root, captured now.
+        #
+        # Session-scoped projects are shared, and the tests that run tooling inside one
+        # (`uv sync`, the nox smoke session) leave `uv.lock`, `.coverage`, `coverage.xml`
+        # and `junit.*.xml` behind. A consumer that re-lists the directory later cannot
+        # tell those apart from files the template shipped, so it reads run artifacts as
+        # template output -- which made the parity gate demand manifest entries for them
+        # whenever it happened to run after the polluting test. Snapshotting at
+        # generation time makes the measured set the rendered set, whatever runs after.
+        self.rendered_root_files = (
+            sorted(path.name for path in project_dir.iterdir() if path.is_file()) if project_dir.exists() else []
+        )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -125,7 +136,6 @@ def copie_session_default(session_projects_dir):
         "include_actions": True,
         "include_examples": True,
         "include_codecov": True,
-        "uv_version": "0.10.0",
         "renovate_preset": "",
     }
 
@@ -173,7 +183,6 @@ def copie_session_minimal(session_projects_dir):
         "repo_visibility": "public",
         "include_actions": False,
         "include_examples": False,
-        "uv_version": "0.10.0",
         "renovate_preset": "",
     }
 
@@ -223,7 +232,6 @@ def copie_session_custom(session_projects_dir):
         "include_actions": True,
         "include_examples": True,
         "include_codecov": True,
-        "uv_version": "0.10.0",
         "renovate_preset": "",
     }
 

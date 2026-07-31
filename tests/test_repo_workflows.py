@@ -16,9 +16,12 @@ import subprocess
 from pathlib import Path
 
 import yaml
+from _tool_invocations import find_invocations
+from _tool_invocations import unpinned as unpinned_invocations
 
 _REPO = Path(__file__).resolve().parent.parent
 _WORKFLOWS = _REPO / ".github" / "workflows"
+_TEMPLATE_WORKFLOWS = _REPO / "template" / ".github" / "{% if include_actions %}workflows{% endif %}"
 _EXACT_SEMVER = re.compile(r"^\d+\.\d+\.\d+$")
 
 
@@ -44,14 +47,28 @@ def _setup_uv_steps():
     return steps
 
 
-def _copier_default_uv_version():
-    """The uv version copier.yml pins for generated projects.
+def _template_uv_version():
+    """The uv version the template pins for generated projects.
 
     Read rather than hardcoded so this repo's pin is checked against the same source of
     truth the fleet gets, and a bump in one place fails here instead of drifting.
+
+    The source moved: uv used to be a copier answer read from `copier.yml`, which meant
+    every generated repo also stored the value in `.copier-answers.yml` where Renovate
+    could not see it and it went stale. It is now a literal in the template's own
+    workflows, maintained like `nox` and `git-cliff`, so that is what this reads.
     """
-    config = yaml.safe_load((_REPO / "copier.yml").read_text(encoding="utf-8"))
-    return str(config["uv_version"]["default"])
+    versions = set()
+    for path in sorted(_TEMPLATE_WORKFLOWS.glob("*.jinja")):
+        for i, line in enumerate(path.read_text(encoding="utf-8").splitlines()):
+            if not line.strip().startswith("version:"):
+                continue
+            preceding = "\n".join(path.read_text(encoding="utf-8").splitlines()[max(0, i - 4) : i])
+            if "astral-sh/setup-uv" in preceding:
+                versions.add(line.split(":", 1)[1].strip().strip('"').strip("'"))
+    assert versions, "no templated setup-uv version pin found; this check would compare against nothing"
+    assert len(versions) == 1, f"the template pins differing uv versions: {sorted(versions)}"
+    return versions.pop()
 
 
 def test_the_assertion_reads_this_repository_not_generated_output():
@@ -88,8 +105,8 @@ def test_repo_uv_pin_is_uniform_and_matches_the_version_shipped_to_projects():
     """
     versions = {str(w["version"]) for _, w in _setup_uv_steps() if w.get("version")}
     assert len(versions) == 1, f"setup-uv steps pin differing uv versions: {sorted(versions)}"
-    assert versions == {_copier_default_uv_version()}, (
-        f"this repo pins uv {sorted(versions)} but copier.yml ships {_copier_default_uv_version()} to projects"
+    assert versions == {_template_uv_version()}, (
+        f"this repo pins uv {sorted(versions)} but the template ships {_template_uv_version()} to projects"
     )
 
 
@@ -252,3 +269,68 @@ def test_instruction_body_difference_reports_each_side():
     assert only_first == ["extra-a"]
     assert only_second == ["extra-b"]
     assert instruction_body_difference(["same", ""], ["same"]) == ([], [])
+
+
+def test_every_invoked_tool_in_this_repo_is_pinned_and_annotated():
+    """Every tool this repo's workflows shell out to is pinned, not just the pinned ones.
+
+    The generated-output half of this pair is in `test_github_workflows.py`, and the
+    reason both exist is the reason this file exists at all: a property enforced
+    downstream was silently absent upstream. `uvx --from cyclonedx-bom` floated in the
+    template for months because the pin assertions quantified over steps that already
+    carried a version, so an unpinned tool was not in the set being measured.
+
+    This repo's own release path is smaller (no SBOM, no PyPI upload), but its nox
+    invocations are the same class of dependency, and nothing asserted they stay
+    pinned once someone adds a new one.
+    """
+    invocations, lines_by_path = [], {}
+    for path in _repo_workflow_paths():
+        invocations += find_invocations(path)
+        lines_by_path[path.name] = path.read_text(encoding="utf-8").splitlines()
+
+    assert invocations, "no tool invocations found in this repository's workflows; the scan is reading the wrong tree"
+
+    floating = unpinned_invocations(invocations, lines_by_path)
+    assert not floating, (
+        "tools invoked with no exact version (they resolve to whatever is newest on the day): "
+        + ", ".join(f"{i.path}:{i.line} `{i.text}`" for i in floating)
+    )
+
+    unannotated = [i for i in invocations if i.pinned and not i.annotated]
+    assert not unannotated, (
+        "pinned tools with no `# renovate:` annotation, so nothing can ever bump them: "
+        + ", ".join(f"{i.path}:{i.line} `{i.spec}`" for i in unannotated)
+    )
+
+
+def test_this_repo_authenticates_git_cliff():
+    """git-cliff's GitHub API calls are authenticated here too, not only downstream.
+
+    `.git-cliff.toml` enables the GitHub integration, so every changelog run calls the
+    API. Anonymous calls share a 60/hour budget with everything else on the runner's
+    IP, and git-cliff panics on the resulting 403 rather than degrading to plain
+    entries, so the job exits 101, no changelog PR opens, and the pushed tag is left
+    with no release behind it. This repo shipped the fix to seven projects while
+    carrying the identical defect in its own workflow.
+    """
+    changelog = _WORKFLOWS / "changelog.yml"
+    content = changelog.read_text(encoding="utf-8")
+    workflow = yaml.safe_load(content)
+
+    assert (workflow.get("permissions") or {}).get("pull-requests") == "read", (
+        "changelog.yml does not grant `pull-requests: read`; git-cliff queries the pulls "
+        "endpoint as well as commits, so `contents: read` alone still 403s"
+    )
+    generate = [
+        step
+        for job in (workflow.get("jobs") or {}).values()
+        for step in (job.get("steps") or [])
+        if "git-cliff --config" in str(step.get("run", ""))
+    ]
+    assert generate, "no git-cliff generate step found in changelog.yml; this check would pass over nothing"
+    for step in generate:
+        assert "GITHUB_TOKEN" in (step.get("env") or {}), (
+            "the git-cliff step has no GITHUB_TOKEN in its env, so its GitHub API calls go out "
+            "anonymous and the release fails whenever the shared IP quota is exhausted"
+        )

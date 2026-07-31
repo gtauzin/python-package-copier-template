@@ -140,6 +140,90 @@ class TestTestsWorkflow:
 class TestPublishWorkflow:
     """Test the publish-release.yml workflow."""
 
+    def test_approval_gate_precedes_every_outward_facing_effect(self, copie):
+        """Nothing is public until the PyPI upload has succeeded.
+
+        The `pypi` environment gate exists so a human can stop a release. It used to sit
+        only on the last job, so `create-release` published a public GitHub Release,
+        with the wheels, sdist and SBOM attached, before the approval was ever
+        requested. By the time anyone was asked, rejecting cost more than approving:
+        deleting a release does not un-download it or retract its notifications, and the
+        repo is left advertising a version that never reached PyPI.
+
+        The fix is ordering, so this asserts ordering: the release is created as a
+        draft (maintainer-visible, so artifacts can still be inspected while the gate is
+        pending) and undrafted by a job that runs only after the upload succeeds.
+        """
+        import yaml
+
+        result = copie.copy(extra_answers={"include_actions": True})
+        assert result.exit_code == 0
+
+        workflow_path = result.project_dir / ".github" / "workflows" / "publish-release.yml"
+        content = workflow_path.read_text(encoding="utf-8")
+        jobs = yaml.safe_load(content)["jobs"]
+
+        gated = [name for name, body in jobs.items() if (body.get("environment") or {})]
+        assert gated == ["pypi-publish"], f"expected the pypi upload to be the gated job, found {gated}"
+
+        assert "--draft \\" in content or "--draft\n" in content, (
+            "the GitHub Release is not created as a draft, so it goes public before the approval gate"
+        )
+
+        assert "finalize-release" in jobs, "no finalize-release job, so a drafted release would never be published"
+        needs = jobs["finalize-release"].get("needs") or []
+        assert "pypi-publish" in needs, (
+            f"finalize-release does not wait on pypi-publish (needs: {needs}), so the release could be "
+            "made public before or without the upload succeeding"
+        )
+        assert "--draft=false" in content, "finalize-release never undrafts the release"
+
+        # The undraft must not itself be gated on anything the approval could bypass.
+        assert jobs["finalize-release"].get("environment") in (None, {}), (
+            "finalize-release carries its own environment gate, which would strand approved releases as drafts"
+        )
+
+    def test_changelog_generation_is_authenticated(self, copie):
+        """git-cliff's GitHub API calls carry a token.
+
+        `.git-cliff.toml` enables the GitHub integration, so every run calls the API to
+        attach PR links and @usernames. Anonymous, that is 60 requests/hour shared
+        across every job on the runner's IP, and git-cliff panics on the resulting 403
+        instead of degrading to plain entries: exit 101, no changelog PR, and a pushed
+        tag with no release behind it. It failed roughly one run in ten, and the tenth
+        was a release.
+        """
+        import yaml
+
+        result = copie.copy(extra_answers={"include_actions": True})
+        assert result.exit_code == 0
+
+        workflow_path = result.project_dir / ".github" / "workflows" / "changelog.yml"
+        workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+
+        assert (workflow.get("permissions") or {}).get("pull-requests") == "read", (
+            "changelog.yml does not grant `pull-requests: read`; git-cliff queries the pulls "
+            "endpoint as well as commits, so `contents: read` alone still 403s"
+        )
+
+        generate = [
+            step
+            for job in (workflow.get("jobs") or {}).values()
+            for step in (job.get("steps") or [])
+            if "git-cliff --config" in str(step.get("run", ""))
+        ]
+        assert generate, "no git-cliff generate step found; this check would pass over nothing"
+        for step in generate:
+            env = step.get("env") or {}
+            assert "GITHUB_TOKEN" in env, (
+                "the git-cliff step has no GITHUB_TOKEN in its env, so its API calls go out anonymous "
+                "and the release fails whenever the shared runner IP has exhausted its quota"
+            )
+            assert "app-token" not in str(env["GITHUB_TOKEN"]), (
+                "the git-cliff step borrows the App token; it only reads here, so it should use the "
+                "scoped GITHUB_TOKEN rather than widening what the release path can write"
+            )
+
     def test_publish_workflow_exists(self, copie):
         """Test that publish workflow exists when actions enabled."""
         result = copie.copy(extra_answers={"include_actions": True})
@@ -493,6 +577,48 @@ class TestWorkflowConsistency:
                 assert "uv tool install nox" in content or "uvx nox" in content, (
                     f"{workflow_file} doesn't install nox consistently"
                 )
+
+    def test_every_invoked_tool_is_pinned_and_annotated(self, copie):
+        """Every tool the generated workflows shell out to is pinned, not just the pinned ones.
+
+        `test_all_setup_uv_steps_pin_exact_version` quantifies over steps that already
+        carry a `version:` input. A tool invoked with no constraint at all is not in
+        that set, so it was never unpinned as far as the suite could tell. That is how
+        `uvx --from cyclonedx-bom` shipped to seven repos and broke every one of their
+        releases the day cyclonedx-bom 7.0 removed a flag the step passed, with this
+        file green throughout. `uvx twine check` was the same defect, in the same job,
+        four lines away, and equally invisible.
+
+        So this enumerates invocations and requires each to carry an exact version and
+        a `# renovate:` annotation. Without the version it floats; without the
+        annotation nothing can bump it and it rots wherever it was last set.
+        """
+        from _tool_invocations import find_invocations, unpinned
+
+        result = copie.copy(extra_answers={"include_actions": True})
+        assert result.exit_code == 0
+
+        workflows_dir = result.project_dir / ".github" / "workflows"
+        invocations, lines_by_path = [], {}
+        for workflow_path in sorted(workflows_dir.glob("*.yml")):
+            invocations += find_invocations(workflow_path)
+            lines_by_path[workflow_path.name] = workflow_path.read_text(encoding="utf-8").splitlines()
+
+        # Guard the input set: if the scan ever finds nothing, every assertion below
+        # passes over an empty set and the gap silently reopens.
+        assert invocations, "no tool invocations found in generated workflows; the scan is reading the wrong tree"
+
+        floating = unpinned(invocations, lines_by_path)
+        assert not floating, (
+            "tools invoked with no exact version (they resolve to whatever is newest on the day): "
+            + ", ".join(f"{i.path}:{i.line} `{i.text}`" for i in floating)
+        )
+
+        unannotated = [i for i in invocations if i.pinned and not i.annotated]
+        assert not unannotated, (
+            "pinned tools with no `# renovate:` annotation, so nothing can ever bump them: "
+            + ", ".join(f"{i.path}:{i.line} `{i.spec}`" for i in unannotated)
+        )
 
 
 class TestWorkflowPermissions:

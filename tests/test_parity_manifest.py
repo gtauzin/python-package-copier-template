@@ -22,6 +22,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from conftest import CopierResult
 
 _REPO = Path(__file__).resolve().parent.parent
 _MANIFEST_PATH = Path(__file__).resolve().parent / "parity_manifest.yml"
@@ -33,13 +34,21 @@ def _manifest():
     return yaml.safe_load(_MANIFEST_PATH.read_text(encoding="utf-8"))
 
 
-def _derive_shipped_gates(project_dir):
+def _derive_shipped_gates(generated):
     """Every gate a generated project receives, read from the rendered project.
 
     Derived, not listed. Workflow *job* identifiers and pre-commit *hook* ids are the
     two places a gate is declared, and both are structural, so a gate added to the
     template appears here without anyone editing this file.
+
+    Takes the generation result, not a directory, because the root-file half must read
+    what was *rendered* rather than what is in the directory now. The session project is
+    shared, and the nox smoke test runs a full tool pass inside it, so by the time this
+    runs the directory may also hold `uv.lock`, `.coverage`, `coverage.xml` and
+    `junit.*.xml`. Re-listing counted those as gates the template ships and demanded
+    manifest entries for them, which made this gate pass or fail on test order alone.
     """
+    project_dir = generated.project_dir
     gates = set()
     for workflow_path in sorted((project_dir / ".github" / "workflows").glob("*.yml")):
         workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
@@ -57,9 +66,8 @@ def _derive_shipped_gates(project_dir):
     # both -- which is exactly how they reached seven generated projects and never
     # this one. The project root is a bounded, structural set, so this stays derived
     # rather than becoming a second hand-maintained list.
-    for path in sorted(project_dir.iterdir()):
-        if path.is_file():
-            gates.add(f"file:{path.name}")
+    for name in generated.rendered_root_files:
+        gates.add(f"file:{name}")
     return gates
 
 
@@ -70,7 +78,7 @@ def test_derivation_finds_gates_at_all(copie_session_default):
     vacuously and the parity gap silently reopens. That is the failure this whole
     capability exists to catch, so check it here first rather than trusting it.
     """
-    gates = _derive_shipped_gates(copie_session_default.project_dir)
+    gates = _derive_shipped_gates(copie_session_default)
     assert len(gates) > 20, f"derivation found only {len(gates)} gates; it is probably reading the wrong tree"
     assert any(g.startswith("hook:") for g in gates), "no pre-commit hooks derived"
     assert any(":" in g and not g.startswith("hook:") for g in gates), "no workflow jobs derived"
@@ -83,7 +91,7 @@ def test_every_shipped_gate_is_answered(copie_session_default):
     quantified over the template and silently meant nothing about this repo; an
     unanswered entry is what makes that visible instead of invisible.
     """
-    shipped = _derive_shipped_gates(copie_session_default.project_dir)
+    shipped = _derive_shipped_gates(copie_session_default)
     answered = set(_manifest()["file_gates"])
     unanswered = sorted(shipped - answered)
     assert not unanswered, (
@@ -99,7 +107,7 @@ def test_no_stale_manifest_entries(copie_session_default):
     for deleted gates slowly stops describing anything, and its passing tells you less
     every release.
     """
-    shipped = _derive_shipped_gates(copie_session_default.project_dir)
+    shipped = _derive_shipped_gates(copie_session_default)
     stale = sorted(set(_manifest()["file_gates"]) - shipped)
     assert not stale, (
         f"manifest answers {len(stale)} gate(s) the template no longer ships: {stale}. Remove the stale entries."
@@ -368,3 +376,38 @@ def test_the_roll_up_detector_accepts_a_correctly_configured_ruleset():
     """And it must not cry wolf on the real configuration, or it will be switched off."""
     assert "CI passed" in required_checks_from_rulesets([_ruleset()])
     assert "CI passed" in required_checks_from_rulesets([_ruleset(enforcement="evaluate", contexts=("x",)), _ruleset()])
+
+
+def test_derivation_ignores_files_written_after_generation(tmp_path):
+    """The gate set is what the template rendered, not what the directory holds later.
+
+    The session project is shared, and the nox smoke test runs a full tool pass inside
+    it, leaving `uv.lock`, `.coverage`, `coverage.xml` and `junit.*.xml` behind. When
+    the derivation re-listed the directory it read those as gates the template ships and
+    demanded manifest entries for them, so this gate passed or failed purely on whether
+    it ran before or after that test. `test_fast` deselects the polluting test, which is
+    why merges stayed green while the full and slow runs carried a live flake, worsened
+    by `-n auto` distributing the two tests across workers unpredictably.
+
+    A denylist of known artifact names would have reopened the moment a tool wrote a
+    new one, which is the same "measures the wrong set" defect this file exists to
+    catch. Snapshotting at generation time fixes the input instead.
+    """
+    project_dir = tmp_path / "rendered"
+    (project_dir / ".github" / "workflows").mkdir(parents=True)
+    (project_dir / "SECURITY.md").write_text("shipped by the template", encoding="utf-8")
+    (project_dir / ".pre-commit-config.yaml").write_text("repos: []", encoding="utf-8")
+
+    generated = CopierResult(project_dir=project_dir, result=None)
+
+    # Everything a tool run drops into a project root afterwards.
+    for artifact in ("uv.lock", ".coverage", "coverage.xml", "junit.3.11.xml"):
+        (project_dir / artifact).write_text("", encoding="utf-8")
+
+    gates = _derive_shipped_gates(generated)
+
+    assert "file:SECURITY.md" in gates, "a file the template rendered is missing from the derived gates"
+    for artifact in ("uv.lock", ".coverage", "coverage.xml", "junit.3.11.xml"):
+        assert f"file:{artifact}" not in gates, (
+            f"{artifact} was written after generation but is counted as a gate the template ships"
+        )
