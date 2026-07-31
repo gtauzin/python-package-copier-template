@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.39.0] - 2026-07-31
+
+This **minor release** includes 2 commits.
+
+
+### Bug Fixes
+- Repair the release path and the checks that missed it  ([#260](https://github.com/stateful-y/python-package-copier/pull/260)) by @gtauzin
+
+### Documentation
+- Record the conflicted-.gitignore hazard from the v0.38.0 fan-out  ([#254](https://github.com/stateful-y/python-package-copier/pull/254)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.38.0] - 2026-07-26
 
 This **minor release** includes 1 commit.
