@@ -9,7 +9,7 @@ git-cliff rewrites nothing. Every changelog bullet **is** the conventional-commi
 
 It runs **after** git-cliff (mechanical) and **before** the release PR merges. The PR diff is the human review surface; this skill stops at pushing to that branch. It never merges.
 
-```
+```text
 git tag pushed → changelog workflow → git-cliff → release PR opened
                                                         │
                                                   ★ polish-changelog: rewrite descriptions → commit → push
@@ -19,9 +19,9 @@ git tag pushed → changelog workflow → git-cliff → release PR opened
 
 ## The scope boundary (read this first)
 
-git-cliff owns the scaffold. You own the free-text description of each bullet — the text between `- ` and ` ([#` — and, where the linked PR justifies it, which declared section that bullet belongs under. Everything else is immutable:
+git-cliff owns the scaffold. You own the free-text description of each bullet — everything after the bullet's `-` marker and before its `([#` link — and, where the linked PR justifies it, which declared section that bullet belongs under. Everything else is immutable:
 
-```
+```text
 ## [0.29.4] - 2026-07-23                     ← IMMUTABLE  version header
 This **patch release** includes 3 commits.   ← IMMUTABLE  hardcoded count — a desync landmine
 ### Features                                 ← IMMUTABLE  group heading = conventional-commit type
@@ -56,7 +56,7 @@ gh pr list --state open --json number,headRefName,title \
 # or match the branch prefix:
 gh pr list --state open --json number,headRefName --jq '.[] | select(.headRefName | startswith("changelog-v"))'
 gh pr checkout <number>
-```
+```text
 
 ### 2. Isolate the new section
 
@@ -74,7 +74,7 @@ For each bullet, get the real context from its linked PR (the subject line rarel
 
 ```bash
 gh pr view <N> --json title,body,files --jq '{title, body, files: [.files[].path]}'
-```
+```text
 
 Rewrite the description from that evidence, following the style contract below. **If the PR's title/body/diff does not support a clearer wording that is still accurate, keep the original subject unchanged.** A plausible-but-wrong rewrite reads clean and can claim behavior the code does not have — abstaining is the correct default under uncertainty. Never assert an effect you cannot see in the PR.
 
@@ -108,7 +108,7 @@ Then commit and push to the PR branch — **do not merge**:
 ```bash
 git commit -am "chore(changelog): polish release notes for vX.Y.Z"
 git push
-```
+```text
 
 The maintainer reviews the polished diff on the PR and merges it.
 
