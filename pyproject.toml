@@ -155,11 +155,20 @@ disable = [
     "MD046",  # Code block style (indented blocks required inside MkDocs tabs)
     "MD051",  # Link fragments (cross-doc references resolved at MkDocs build time)
 ]
-exclude = ["CHANGELOG.md", "template", "site", "htmlcov", ".nox", ".venv"]
+# `template` is deliberately NOT excluded. The 28 plain-markdown files under it ship
+# verbatim to every generated project, and while they were excluded here they were
+# linted nowhere at source: the violations surfaced only after rendering, as a
+# failure of the generated project's own lint session in the slow test tier. That is
+# how a skill with four markdown violations sat on a branch indefinitely.
+# `.md.jinja` files are not discovered (rumdl keys on the extension), so only the
+# verbatim-shipped markdown is checked, which is exactly the set that needs it.
+exclude = ["CHANGELOG.md", "site", "htmlcov", ".nox", ".venv"]
 
 [tool.rumdl.per-file-ignores]
 ".github/PULL_REQUEST_TEMPLATE.md" = ["MD041"]  # PR template starts with checklist
 ".github/skills/**" = ["MD007"]  # Nested lists in skill files use variable indent
+"template/**" = ["MD057"]  # link targets exist as `X.md.jinja` in the template tree, so
+                            # relative-link resolution is only meaningful after rendering
 # Same files, same reason. The exemption was written when only the Copilot copy
 # was tracked; .claude/skills was gitignored, so it never needed one and the
 # asymmetry was invisible. Tracking the copy Claude Code actually reads made the
