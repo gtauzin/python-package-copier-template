@@ -629,6 +629,77 @@ class TestWorkflowConsistency:
         )
 
 
+class TestReleaseSmokeGate:
+    """The release path is exercised off the release path."""
+
+    def test_smoke_job_runs_the_release_tools_without_publishing(self, copie):
+        """A scheduled job builds, checks and generates the SBOM, and publishes nothing.
+
+        `publish-release.yml` only ever executes on a merged, `changelog`-labelled PR,
+        so nothing touches these tools until a real publish is already in flight. That
+        is how three defects accumulated in one file, one of which -- an SBOM flag
+        removed by a major version of an unpinned tool -- broke every generated
+        project's release on the day it shipped.
+
+        Pinning those tools converted silent drift into a Renovate pull request, which
+        is the right fix and opens a new gap: nothing runs the SBOM step, so such a PR
+        goes green on evidence that says nothing about whether releases still work.
+        This job is what makes those PRs mean something.
+        """
+        import yaml
+
+        result = copie.copy(extra_answers={"include_actions": True})
+        assert result.exit_code == 0
+
+        workflow_path = result.project_dir / ".github" / "workflows" / "nightly.yml"
+        content = workflow_path.read_text(encoding="utf-8")
+        workflow = yaml.safe_load(content)
+        jobs = workflow["jobs"]
+
+        assert "release-smoke" in jobs, "no release-smoke job; release tooling is exercised only during a real publish"
+        steps = jobs["release-smoke"]["steps"]
+        runs = "\n".join(str(s.get("run", "")) for s in steps)
+
+        assert "uv build" in runs, "the smoke job does not build, so it exercises nothing"
+        assert "twine" in runs and "check" in runs, "the smoke job does not run twine check"
+        assert "cyclonedx-py" in runs, "the smoke job does not generate an SBOM, which is the step that actually broke"
+
+        # It must NOT publish. A smoke gate that uploads is a release, not a smoke gate.
+        assert "gh release create" not in runs, "the smoke job creates a release"
+        assert not any("pypi-publish" in str(s.get("uses", "")) for s in steps), "the smoke job publishes to PyPI"
+        assert (jobs["release-smoke"].get("environment") or {}) == {}, (
+            "the smoke job sits behind an environment gate, so it would need approval to tell you anything"
+        )
+
+        # Producing a file is not evidence it is usable, so the job must inspect it.
+        assert "bomFormat" in runs, (
+            "the smoke job does not validate the SBOM it generates; a step writing an empty or "
+            "malformed document would pass a mere existence check"
+        )
+
+    def test_smoke_failure_is_reported(self, copie):
+        """A failure has to reach a human, or the gate is decorative.
+
+        The job runs on a schedule, so nobody is watching when it fails. The nightly
+        workflow already files a deduplicated issue on failure; the smoke job has to be
+        wired into that, not merely present alongside it.
+        """
+        import yaml
+
+        result = copie.copy(extra_answers={"include_actions": True})
+        assert result.exit_code == 0
+
+        jobs = yaml.safe_load(
+            (result.project_dir / ".github" / "workflows" / "nightly.yml").read_text(encoding="utf-8")
+        )["jobs"]
+        needs = jobs["create-issue-on-failure"].get("needs") or []
+        needs = [needs] if isinstance(needs, str) else needs
+        assert "release-smoke" in needs, (
+            f"create-issue-on-failure does not depend on release-smoke (needs: {needs}), so a smoke "
+            "failure on a schedule would be silent"
+        )
+
+
 class TestWorkflowPermissions:
     """Test that workflows have appropriate permissions."""
 
