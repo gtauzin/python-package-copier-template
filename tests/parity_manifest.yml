@@ -94,6 +94,13 @@ file_gates:
     reason: >-
       Publishes to PyPI via OIDC trusted publishing. Nothing to publish, per the
       build exclusion above.
+  publish-release.yml:finalize-release:
+    status: excluded
+    reason: >-
+      Undrafts the GitHub Release once the PyPI upload has succeeded, so that the
+      approval gate precedes every outward-facing effect. This repo has no PyPI
+      upload to gate, per the pypi-publish exclusion above, so its release is
+      created public in one step and there is nothing to undraft.
   commit-message.yml:validate-commit-message:
     equivalent: commit-message.yml:validate-commit-message
     status: matched

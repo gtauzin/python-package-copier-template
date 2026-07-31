@@ -887,7 +887,18 @@ def test_workflows_pin_uv_nox_and_git_cliff(copie_session_default):
     assert "uv tool install nox\n" not in joined, "a floating `uv tool install nox` remains"
     assert re.search(r"tool: git-cliff@\d[\w.]*", joined), "git-cliff is not pinned to an exact version"
 
-    for dep in ("astral-sh/uv", "nox", "orhun/git-cliff"):
+    # The release path's own tools. `cyclonedx-bom` floated until it broke every
+    # generated project's release; `twine` is the same invocation shape in the same job.
+    assert re.search(r"uvx --from cyclonedx-bom==\d[\w.]*", joined), "cyclonedx-bom is not pinned to an exact version"
+    assert re.search(r"uvx twine==\d[\w.]*", joined), "twine is not pinned to an exact version"
+
+    # `--outfile` was a deprecated alias that cyclonedx-bom 7.0 removed, so the step
+    # began exiting 2 with no change in any consuming repo. `--output-file` is accepted
+    # by 6.x and 7.x alike, which makes it correct independently of the pin above.
+    assert "--output-file " in joined, "the SBOM step does not use the supported --output-file flag"
+    assert "--outfile" not in joined, "the SBOM step still passes --outfile, removed in cyclonedx-bom 7.x"
+
+    for dep in ("astral-sh/uv", "nox", "orhun/git-cliff", "cyclonedx-bom", "twine"):
         assert f"depName={dep}" in joined, f"missing renovate annotation for {dep}, so it cannot be bumped"
 
     # EVERY setup-uv version pin must carry the annotation, not just one. A single
@@ -1366,9 +1377,13 @@ def test_copier_answers_stores_all_user_inputs(copie):
     assert "package_name: my_test_pkg" in content
     assert "project_name: My Test Package" in content
     assert "project_slug: my-test-package" in content
-    # uv_version must persist so a project's pinned uv survives `copier update`
-    # (the workflow files regenerate from it); it is recorded unconditionally.
-    assert "uv_version: '0.10.0'" in content or "uv_version: 0.10.0" in content
+    # uv_version is deliberately NOT recorded. It used to be an answer, which meant
+    # every repo stored the version a second time in a file Renovate cannot see; once
+    # Renovate advanced the real pin, the answers file asserted a uv nothing ran, and
+    # any file the template later delivered rendered from the stale value. uv is now a
+    # literal in the template's workflows, maintained like nox and git-cliff, so there
+    # is no second copy to go stale and nothing to record here.
+    assert "uv_version" not in content, "uv_version is a template literal now and must not be recorded as an answer"
 
 
 def test_max_python_version_in_classifiers(copie):

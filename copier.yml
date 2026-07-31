@@ -178,17 +178,6 @@ include_codecov:
   default: "{{ repo_visibility == 'public' }}"
   when: "{{ include_actions }}"
 
-uv_version:
-  type: str
-  # Pinned exact uv version for the CI setup-uv steps. Pinning an exact X.Y.Z
-  # skips setup-uv's resolve-"latest" network call (the transient "fetch failed"
-  # point); a range would still resolve over the network, so keep it exact.
-  # Bumped by hand: Dependabot's github-actions ecosystem updates `uses:` refs,
-  # not the setup-uv `version:` input, and nothing reads copier.yml.
-  help: "uv version to pin in CI setup-uv steps (exact X.Y.Z)"
-  default: "0.10.0"
-  when: "{{ include_actions }}"
-
 renovate_preset:
   type: str
   # Renovate replaces Dependabot for version updates. When this is set, the generated
