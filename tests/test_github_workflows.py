@@ -593,7 +593,7 @@ class TestWorkflowConsistency:
         a `# renovate:` annotation. Without the version it floats; without the
         annotation nothing can bump it and it rots wherever it was last set.
         """
-        from _tool_invocations import find_invocations, unpinned
+        from _tool_invocations import find_invocations, unpinned, unreadable_annotations
 
         result = copie.copy(extra_answers={"include_actions": True})
         assert result.exit_code == 0
@@ -612,6 +612,14 @@ class TestWorkflowConsistency:
         assert not floating, (
             "tools invoked with no exact version (they resolve to whatever is newest on the day): "
             + ", ".join(f"{i.path}:{i.line} `{i.text}`" for i in floating)
+        )
+
+        unreadable = []
+        for workflow_path in sorted(workflows_dir.glob("*.yml")):
+            unreadable += [f"{workflow_path.name}:{d}" for d in unreadable_annotations(workflow_path)]
+        assert not unreadable, (
+            "`# renovate:` annotations the preset's manager cannot read (present, but placed where "
+            "its forward scan cannot reach the version, so nothing will ever bump them): " + ", ".join(unreadable)
         )
 
         unannotated = [i for i in invocations if i.pinned and not i.annotated]

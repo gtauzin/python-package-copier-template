@@ -16,7 +16,7 @@ import subprocess
 from pathlib import Path
 
 import yaml
-from _tool_invocations import find_invocations
+from _tool_invocations import find_invocations, unreadable_annotations
 from _tool_invocations import unpinned as unpinned_invocations
 
 _REPO = Path(__file__).resolve().parent.parent
@@ -296,6 +296,11 @@ def test_every_invoked_tool_in_this_repo_is_pinned_and_annotated():
         "tools invoked with no exact version (they resolve to whatever is newest on the day): "
         + ", ".join(f"{i.path}:{i.line} `{i.text}`" for i in floating)
     )
+
+    unreadable = []
+    for path in _repo_workflow_paths():
+        unreadable += [f"{path.name}:{d}" for d in unreadable_annotations(path)]
+    assert not unreadable, "`# renovate:` annotations the preset's manager cannot read: " + ", ".join(unreadable)
 
     unannotated = [i for i in invocations if i.pinned and not i.annotated]
     assert not unannotated, (

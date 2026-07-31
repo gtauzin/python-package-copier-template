@@ -115,3 +115,34 @@ def unpinned(invocations, lines_by_path):
         if inv.name not in installed:
             offenders.append(inv)
     return offenders
+
+
+# The exact pattern the shared Renovate preset (`stateful-y/renovate-config`) uses to
+# read `# renovate:` annotations, transcribed from `default.json`. Renovate runs RE2,
+# which spells named groups `(?<name>)`; Python needs `(?P<name>)`. That is the only
+# difference, and it is why testing this pattern locally raises rather than silently
+# matching nothing.
+PRESET_ANNOTATION = re.compile(
+    r"# renovate: datasource=(?P<datasource>\S+) depName=(?P<depName>\S+)"
+    r"\s+[^\n]*?(?P<currentValue>\d[^\"\s]*)"
+)
+
+_ANNOTATION = re.compile(r"# renovate: datasource=\S+ depName=(\S+)")
+
+
+def unreadable_annotations(path):
+    """Annotations the preset's manager cannot actually read, with their depName.
+
+    Presence is not readability. The pattern scans forward from `depName=` within a
+    SINGLE line, so an annotation placed above a `run: |` key lands on that key and can
+    never reach a version two lines below. It looks correct, reviews as correct, and is
+    read by nothing -- the pin then rots at whatever it was set to while every check
+    that merely greps for the comment stays green.
+
+    That is not hypothetical: v0.39.0 shipped exactly this for `cyclonedx-bom`, to the
+    template and all seven generated repos, and a test asserting the annotation was
+    *present* passed over it in 214 CI checks.
+    """
+    text = path.read_text(encoding="utf-8")
+    readable = {m.group("depName") for m in PRESET_ANNOTATION.finditer(text)}
+    return [dep for dep in _ANNOTATION.findall(text) if dep not in readable]
