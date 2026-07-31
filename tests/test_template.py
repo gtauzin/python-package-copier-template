@@ -4195,24 +4195,6 @@ def test_docs_use_no_em_or_en_dashes(copie_session_default):
 # What the fleet actually runs, verified against all seven generated repos. A pin the
 # fleet does not run is not a stale version number, it is a permanent local delta in
 # every repo that copier must replay on every release -- see the test below.
-EXPECTED_ACTION_PINS = {
-    "actions/checkout": "v7",
-    "actions/create-github-app-token": "v2",
-    "actions/download-artifact": "v7",
-    "actions/github-script": "v9",
-    "actions/upload-artifact": "v7",
-    "amannn/action-semantic-pull-request": "v6",
-    "astral-sh/setup-uv": "v7",
-    "codecov/codecov-action": "v7",
-    "codecov/test-results-action": "v1",
-    "github/codeql-action/analyze": "v3",
-    "github/codeql-action/init": "v3",
-    "github/codeql-action/upload-sarif": "v3",
-    "ossf/scorecard-action": "v2.4.4",
-    "peter-evans/create-pull-request": "v8",
-    "pypa/gh-action-pypi-publish": "v1.13.0",
-    "taiki-e/install-action": "v2",
-}
 
 
 def test_action_pins_are_consistent_and_current(copie_session_default):
@@ -4248,22 +4230,21 @@ def test_action_pins_are_consistent_and_current(copie_session_default):
     split = {a: {v: sorted(f) for v, f in vs.items()} for a, vs in pins.items() if len(vs) > 1}
     assert not split, f"these actions are pinned at more than one version: {split}"
 
-    actual = {action: next(iter(versions)) for action, versions in pins.items()}
-    unknown = sorted(set(actual) - set(EXPECTED_ACTION_PINS))
-    assert not unknown, (
-        f"new actions {unknown} are pinned but absent from EXPECTED_ACTION_PINS; check what the "
-        f"fleet runs and record it, rather than letting a fresh pin drift from day one"
-    )
-    wrong = {a: (v, EXPECTED_ACTION_PINS[a]) for a, v in actual.items() if EXPECTED_ACTION_PINS[a] != v}
-    assert not wrong, f"pins disagree with what the fleet runs (action: template -> expected): {wrong}"
+    # Currency is no longer asserted here. It used to be checked against a hand-written
+    # map of sixteen actions in this file, which is a second source of truth that can
+    # only drift: it went stale once with four pins matching no repo alive, and the test
+    # stayed green throughout. The shared Renovate preset now reads the template's own
+    # `uses:` refs directly, so a stale pin arrives as a pull request instead of as a
+    # silently-passing assertion. What remains here is the part that is derived from the
+    # rendered project and cannot go stale: one version per action.
 
 
 @pytest.mark.slow
-def test_expected_action_pins_actually_resolve_on_github():
-    """Every pin in EXPECTED_ACTION_PINS resolves to a real ref on GitHub.
+def test_action_pins_actually_resolve_on_github(copie_session_default):
+    """Every action ref the template ships resolves to a real ref on GitHub.
 
-    ``test_action_pins_are_consistent_and_current`` only checks the template's pins are
-    self-consistent and match this map -- it cannot tell whether a tag *exists*. That
+    ``test_action_pins_are_consistent_and_current`` checks the template's pins are
+    self-consistent -- it cannot tell whether a tag *exists*. That
     gap shipped ``ossf/scorecard-action@v2`` (no such tag; the action publishes only
     ``vX.Y.Z`` tags), which passed every test and then failed at runtime on every
     generated repo with "unable to find version v2". This closes it by resolving each
@@ -4278,7 +4259,13 @@ def test_expected_action_pins_actually_resolve_on_github():
         pytest.skip("gh CLI not available")
     missing = {}
     uncheckable = []
-    for action, ref in EXPECTED_ACTION_PINS.items():
+    pins = {}
+    for wf in sorted((copie_session_default.project_dir / ".github" / "workflows").glob("*.yml")):
+        for match in re.finditer(r"uses:\s*([\w./-]+)@(\S+)", wf.read_text(encoding="utf-8")):
+            pins[match.group(1)] = match.group(2)
+    assert pins, "no action refs found in the rendered project; this test would verify nothing"
+
+    for action, ref in pins.items():
         repo = "/".join(action.split("/")[:2])  # github/codeql-action/init -> github/codeql-action
         result = subprocess.run(
             [gh, "api", f"repos/{repo}/commits/{ref}", "--jq", ".sha"],
@@ -4304,7 +4291,7 @@ def test_expected_action_pins_actually_resolve_on_github():
     )
     if uncheckable:
         pytest.skip(
-            f"could not verify {len(uncheckable)}/{len(EXPECTED_ACTION_PINS)} pins "
+            f"could not verify {len(uncheckable)}/{len(pins)} pins "
             f"(gh unauthenticated or network unavailable); e.g. {uncheckable[0]}"
         )
 
