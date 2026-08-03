@@ -33,7 +33,7 @@ jobs:
     steps:
       - name: Checkout the commit that will ship
         if: {% raw %}${{ github.event.pull_request.commits == 1 }}{% endraw %}
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           # The PR head itself, not the merge commit checkout/@v7 defaults to -- the
           # merge commit's message is GitHub's, not the contributor's.

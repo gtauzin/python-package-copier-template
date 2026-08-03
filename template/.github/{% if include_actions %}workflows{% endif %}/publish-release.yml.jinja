@@ -41,7 +41,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Checkout the release tag
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           ref: {% raw %}${{ steps.find_tag.outputs.version }}{% endraw %}
@@ -98,7 +98,7 @@ jobs:
       # Check out main (not the tag): main carries the CHANGELOG entry the merged
       # changelog PR just added, which the tag does not yet have.
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           ref: main
