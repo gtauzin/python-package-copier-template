@@ -30,7 +30,7 @@ jobs:
           private-key: {% raw %}${{ secrets.APP_PRIVATE_KEY }}{% endraw %}
 
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
