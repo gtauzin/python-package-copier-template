@@ -77,13 +77,13 @@ jobs:
             --output-format JSON --output-file sbom.cdx.json
 
       - name: Store the distribution packages
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: {% raw %}${{ env.dists-artifact-name }}{% endraw %}
           path: dist/*
 
       - name: Store the SBOM
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: {% raw %}${{ env.sbom-artifact-name }}{% endraw %}
           path: sbom.cdx.json
