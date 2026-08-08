@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.40.1] - 2026-08-08
+
+This **patch release** includes 2 commits.
+
+
+### Bug Fixes
+- Fix a shell injection in the release workflow via the pull request title  ([#275](https://github.com/stateful-y/python-package-copier/pull/275)) by @gtauzin
+
+### Refactoring
+- Let Renovate keep the workflow action versions current instead of a hand-written list  ([#269](https://github.com/stateful-y/python-package-copier/pull/269)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.40.0] - 2026-07-31
 
 This **minor release** includes 1 commit.
