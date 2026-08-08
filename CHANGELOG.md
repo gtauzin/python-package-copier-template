@@ -12,10 +12,10 @@ This **patch release** includes 2 commits.
 
 
 ### Bug Fixes
-- Stop a PR title reaching the release shell as code  ([#275](https://github.com/stateful-y/python-package-copier/pull/275)) by @gtauzin
+- Fix a shell injection in the release workflow via the pull request title  ([#275](https://github.com/stateful-y/python-package-copier/pull/275)) by @gtauzin
 
 ### Refactoring
-- Derive the action-pin checks instead of listing them  ([#269](https://github.com/stateful-y/python-package-copier/pull/269)) by @gtauzin
+- Let Renovate keep the workflow action versions current instead of a hand-written list  ([#269](https://github.com/stateful-y/python-package-copier/pull/269)) by @gtauzin
 
 ### Contributors
 
