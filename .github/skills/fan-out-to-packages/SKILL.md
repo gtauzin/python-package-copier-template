@@ -31,7 +31,7 @@ would get a silent empty return from it, but none exists yet.
 | yohou-optuna | True | 5 notebooks, all flat. Carries **15 custom skills / 36 files** under `.claude/skills/` that must stay tracked. (`plot_model_comparison_bar` is **yohou's**, not this repo's — an earlier version of this table said otherwise.) |
 | sklearn-wrap | True | 9 flat notebooks. `--extra config` is needed for **`ty`** and for **notebook execution during export**, but *not* for rendering: `check_docs` passes with pydantic absent because mkdocstrings uses griffe's static analysis. So `build_docs`/`build_steps` fail locally on `examples/yaml_config.py` while CI and RTD stay green — RTD's recipe passes the extra, the nox sessions never got it (`test_docstrings` already does, so the pattern exists locally). Pre-existing, verified identical on the prior tag. An earlier version of this table said the extra was "not for the docs build", full stop; that is wrong for the export leg. `test_docstrings` has **no matrix parametrization** here — a single ubuntu job on 3.11 — so do not go looking for one to preserve. Went RTD-red once from the v0.22.0 gallery bug. |
 | sklearn-optuna | True | 9 flat notebooks. **See Also: 13 sections, 32 entries, 0 unlinked** — that is the whole useful fact. Do *not* re-add a breakdown of where those links point: this cell has carried three mutually contradictory versions (dependency-inventory resolution; 21 external to `docs.python.org`; 21 internal + 9 API + 2 external), each written confidently from a single agent's measurement, and a spot-check of a live page found 3 links all internal. Nothing in a fan-out turns on the answer. Carries `Sampler`/`Storage`, whose only member is `__init__` — filtered out — which makes it the fleet's test case for anything sensitive to *rendered* vs declared members. |
-| **kedro-dagster** | **False** | No notebooks. Largest docstring surface (~126 See Also links). `docstring_options: {warn_unknown_params: false}` is **CI-critical** — flipping it emits 77 griffe warnings and now *fails* the build. Snippets `base_path` must stay `[docs, .]`: it includes repo-root-relative `src/kedro_dagster/templates/*`. `datasets/` re-export layout. Renamed its page to **`troubleshoot.md`**, and keeps a `test-versions` job (with its `needs:`) that copier has deleted before — it lives in **`nightly.yml:45`** and a dedicated **`tests-versions.yml`**, *not* in `tests.yml`; an agent grepping `tests.yml` per this file's old phrasing found nothing and briefly thought it had hit that exact loss. Its curated `pages/reference/datasets.md` is the fleet's only multi-object `:::` page, which makes it the sole real test for anything about duplicate ids or per-object section stripping. Its `tests-versions.yml` `astral-sh/setup-uv` step is bespoke (copier does not own it) — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
+| **kedro-dagster** | **False** | No notebooks. Largest docstring surface (~126 See Also links). `docstring_options: {warn_unknown_params: false}` is **CI-critical** — flipping it emits 77 griffe warnings and now *fails* the build. Snippets `base_path` must stay `[docs, .]`: it includes repo-root-relative `src/kedro_dagster/templates/*`. `datasets/` re-export layout. Renamed its page to **`troubleshoot.md`**, and keeps a `test-versions` job (with its `needs:`) that copier has deleted before — it lives in **`nightly.yml:54`** (was recorded as :45 for several releases) and a dedicated **`tests-versions.yml`**, *not* in `tests.yml`; an agent grepping `tests.yml` per this file's old phrasing found nothing and briefly thought it had hit that exact loss. Its curated `pages/reference/datasets.md` is the fleet's only multi-object `:::` page, which makes it the sole real test for anything about duplicate ids or per-object section stripping. Its `tests-versions.yml` `astral-sh/setup-uv` step is bespoke (copier does not own it) — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
 | **kedro-azureml-pipeline** | **False** | No notebooks. `warn_unknown_params: false` is CI-critical — measured to the number: flipping it produces exactly **46** griffe warnings and fails `--strict`. Its `inventories` is **the template default** (`docs.python.org` only), *not* a local extension — an earlier version of this table said it kept a local list, and an agent that went looking for one to preserve found nothing. `distributed/` re-export layout. Best index coverage in the fleet. Renamed its page to **`troubleshoot.md`**. `test_versions` matrix runs **10** jobs — 4 on 3.11, 4 on 3.12, 2 on 3.13, because 3.13 omits the `azure-ai-ml<1.20` pair. This cell said **12** for several releases; two independent fan-out agents measured 10 against byte-identical workflows, so the 12 was arithmetic rather than observation. Also: the ambient interpreter is 3.14, where **kedro raises `KedroPythonVersionWarning` on import**, so this package cannot be imported there despite `requires-python` having no upper bound — `check_docs` is pinned to 3.11 and unaffected. Answers cap at `max_python_version: 3.13`, but `requires-python` has **no upper bound** — see the interpreter note in §5. Its `test_versions` matrix lives in a bespoke `tests-versions.yml` with its own `astral-sh/setup-uv` step copier does not own — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
 
 **`include_examples: False` is real and load-bearing.** For those two repos the gallery,
@@ -49,17 +49,18 @@ a template bug: report it, do not accommodate it.
    `Downgrades are not supported`, not as a no-op. Verify the tag resolves and actually
    contains the change:
    `git rev-list -n1 vX.Y.Z` and grep the changed file out of `git show vX.Y.Z:<path>`.
-2. **Diff the two pristine renders across the version pair, per `include_examples` value.**
+2. **Any release that adds a generated file also changes `.claude/skills/update-from-template/references/file-classification.md`** (its update tier), and its `.github/skills/` twin — which is **gitignored in every repo**, so copier writes it to disk untracked and no one reviews it. List it in the brief; three v0.40.1 agents reported it as a delta item I had missed.
+3. **Diff the two pristine renders across the version pair, per `include_examples` value.**
    This tells you what each repo will actually receive, and it is the only thing that makes
    a later "untouched!" result meaningful. Do it before writing the briefs.
-3. **Give agents the expected DELTA, not an expected absolute count.** An absolute
+4. **Give agents the expected DELTA, not an expected absolute count.** An absolute
    ("expect 56 symbols") goes stale the moment the repo merges anything: in one round a
    package merged a PR adding a public class between the fan-out's measurement and the
    agent's clone, so the brief said 56→57 and the agent correctly measured 57→58. Both
    were right; only the delta was durable. State the delta, name the symbols expected to
    appear or vanish, and tell the agent to re-derive its own baseline — an agent that
    trusts a stale absolute either reports a phantom regression or, worse, "fixes" it.
-4. **Measure local drift in EVERY file the release touches, by CONTENT, before briefing.**
+5. **Measure local drift in EVERY file the release touches, by CONTENT, before briefing.**
    Not the one file you think is risky, and never by line count. In the v0.28.4 round I
    compared `wc -l`, found three repos matching pristine exactly, and told their agents
    "no local drift to preserve" — while all three had differing content at identical line
@@ -73,7 +74,7 @@ a template bug: report it, do not accommodate it.
     (git/Myers), 186 (git/histogram) and 272 (Python `difflib`) changed lines. Net line
     change agrees; the +/- total is algorithm-dependent. Counting drift estimates **risk**.
     Only a whole-file pre→post diff establishes **loss**.
-5. **Write the per-repo briefs from THIS FILE, re-read now — not from working memory.**
+6. **Write the per-repo briefs from THIS FILE, re-read now — not from working memory.**
    §1 is the corrected record; your recollection of it is a stale copy. In the v0.28.1 round
    I briefed kedro-azureml to "preserve its local `inventories` list" — a claim §1 already
    carried as *retracted*, with a note that an agent went looking and found nothing. The
@@ -81,19 +82,19 @@ a template bug: report it, do not accommodate it.
    which I passed to an agent as an unfixed bug two releases after it was fixed. Both cost
    an agent real work, and both were one `grep` away. **A brief is a copy of this file's
    claims; copies drift.**
-6. **Give each agent a scratch directory unique to its repo, and tell it to keep every file
+7. **Give each agent a scratch directory unique to its repo, and tell it to keep every file
    it writes inside that directory.** A unique directory is necessary but not sufficient:
    agents have still collided at the shared scratchpad root. One had a sibling overwrite its
    script mid-run, and the rewritten script cheerfully reported `LOST: NONE` — out of two
    empty lists. Another found a foreign script pointed at a different repo's clone and
    correctly refused to run it. Tell each agent to distrust any file it did not write.
-7. **Do not assume the scratchpad is empty, and do not assume it is wiped.** It is *not*
+8. **Do not assume the scratchpad is empty, and do not assume it is wiped.** It is *not*
    wiped between sessions — agents have found their previous clones intact, at the previous
    release's ref. That is the more dangerous direction: a stale clone updates from the wrong
    baseline and every later measurement is against a fiction. Have each agent clone fresh,
    and verify the ref it actually landed on rather than the ref it asked for. The work lives
    on GitHub, not on disk.
-8. **Check where each repo's PR branch actually sits, not where `main` sits.** This fleet
+9. **Check where each repo's PR branch actually sits, not where `main` sits.** This fleet
    carries one long-lived `template-update/*` PR per repo whose branch name is frozen at the
    release that created it; the content advances every release while `main` stays behind. The
    branch name is not evidence of its version — read `_commit` from `.copier-answers.yml` on
@@ -109,7 +110,9 @@ a template bug: report it, do not accommodate it.
   `docs/hooks.py`) were eliminated by v0.20.0 and must not come back.
 - **`git diff --stat -- docs/assets` is empty.** The only sanctioned exception in this
   fleet's history is yohou-nixtla's 2-file logo restore.
-- `nox -s check_docs` passes with **0 warnings** (it builds `--strict`, notebooks skipped).
+- `nox -s check_docs` passes with **0 warnings** (it builds `--strict`, notebooks skipped) —
+  **but see §5: on this host that session is a vacuous pass and proves nothing.** Require a
+  non-zero page count alongside the zero warnings, or take the result from CI.
 - See Also: **0 BROKEN references** — not "0 unlinked". As of v0.29.2 a See Also target in
   a *dependency* package renders as plain code by design (`_see_also.py` cannot know at
   collection time whether an inventory will resolve it, and an unresolved autoref is fatal
@@ -214,8 +217,29 @@ checked.
   checkout bump and the hunk stopped applying once the template shipped v7 itself.
   `test_action_pins_are_consistent_and_current` now checks every action against
   `EXPECTED_ACTION_PINS` — it asserted only `checkout` while four other pins matched no repo
-  alive, and stayed green throughout. The pins are current as of v0.25.1; when dependabot
-  moves the fleet, move the template and that map together.
+  alive, and stayed green throughout. `EXPECTED_ACTION_PINS` was **deleted** in v0.40.1
+  (#269): Renovate reads the template's `uses:` refs directly, so a stale pin now arrives as
+  a pull request instead of a silently-passing assertion.
+- **THE FLEET IS DIGEST-PINNED AND THE TEMPLATE IS TAG-PINNED, so every `uses:` line
+  conflicts on any release that bumps an action.** This is now the default shape of a
+  fan-out conflict, not an edge case. Renovate's `helpers:pinGitHubActionDigests` rewrites
+  each generated repo to `uses: owner/action@<40-hex> # v7`; the template ships `@v7`. The
+  moment the template moves to `@v7.0.1`, that line matches neither side and rejects.
+  v0.40.1 produced **20-22 inline conflicts per repo, in 8 files, with zero `.rej`** — in
+  all seven repos at once.
+  **Always resolve by keeping the LOCAL digest and discarding the template's tag.** Digests
+  are what the repo runs, what Scorecard's `PinnedDependenciesID` scores, and what Renovate
+  maintains. Resolving toward the template silently un-pins the whole fleet. Do not add
+  digests to anything new either — that is Renovate's job.
+  Consequence worth expecting: a workflow whose *only* template delta was the tag bump ends
+  the update **byte-identical to before**. That is the correct outcome, not a failed update.
+- **`uses:` is not the only local delta in a workflow — `astral-sh/setup-uv`'s `version:`
+  input is a second one.** The template seeds `"0.10.0"`; Renovate has moved the fleet to
+  `"0.12.1"`, at **13-17 sites per repo across five templated workflows**. Three agents
+  independently caught a v0.40.1 brief that said the drift was "only `uses:` lines". Nothing
+  broke, because the template did not touch those lines that round — but an agent resolving
+  by regenerating a workflow from the pristine render rather than by editing conflict blocks
+  would have reverted the uv pin in five files, silently. Audit both after any resolution.
 
 **Docs fail by rendering nothing.**
 - **Every link this hook emits is unvalidated, and that is where the bugs live.** `--strict`
@@ -227,6 +251,20 @@ checked.
   everywhere anyone looked**. Check these by fetching the rendered links yourself.
 - An unresolved marker renders as blank space; `--strict` never validated it. `check_docs`
   (v0.21.2) makes marker warnings fatal — that job is the only reason any of this is caught.
+  **In CI. On this host it catches nothing:** `zensical build -s` finishes in ~0.1s, writes
+  an **empty `site/`**, and exits 0 — so `nox -s check_docs` returns "0 warnings" *with a
+  deliberately broken link injected*. Root cause is inotify-instance exhaustion (128 limit,
+  ~116 in use by editors and watchers), recorded in the Zensical notes; `--clean` does not
+  help. **Every one of the seven v0.40.1 agents reproduced this**, and each one initially
+  had a green local `check_docs` in hand before falsifying it.
+  So: a local `check_docs` pass is not evidence. Three things are —
+  (a) assert the build emitted a **non-zero page count**, not just zero warnings;
+  (b) re-run in a clean container (`python:3.13-slim` / `uv:python3.13-bookworm-slim`),
+    where the same injected link correctly gives exit 1; or
+  (c) take CI's `Docs build (strict)`, whose job log shows a real multi-second build and a
+    real page count.
+  This is the sharpest instance of the file's own rule: the checker was likelier to be
+  wrong than the code, and it failed **silent and green**.
 - **Hook-emitted raw HTML is invisible to `--strict`** — mkdocs never validates links inside
   it. The gallery overflow link 404'd into RTD-red this way; API-table `Name`/`Module` links
   have the same exposure. Only RTD's `post_build` linkchecker sees them, and CI does not run it.
@@ -265,7 +303,14 @@ checked.
   flips it from pass to skip, which is correct, not a regression: with two commits GitHub
   takes the squash title from the **PR title**, which `pr-title.yml` validates instead.
   **This makes the PR title load-bearing for the changelog** — update it when you fold.
-- **RTD 403s urllib's user-agent** — use `curl`.
+- **RTD 403s urllib's user-agent** — use `curl`. And in **yohou**, a green RTD preview is
+  evidence of nothing about the PR: `.readthedocs.yml` does not build the docs at all, it
+  `curl`s the `docs-site` release tarball that `docs-deploy.yml` publishes **from main**
+  (Zensical needs ~8.6 GB and OOMs on RTD's ~1 GB limit). So every yohou PR preview serves
+  main's content by construction. Verified on v0.40.1: RTD build pinned to the PR's exact
+  commit returned 200 and served a page **without** the paragraph that PR added. §6's
+  "fetch RTD state with curl" is a dead control there — use the container build's rendered
+  `<article>` instead.
 - A stale `.rumdl_cache` gives a **false clean**. Delete it and re-run.
 - Cached notebook exports (`.source_hash`) make a docs build **vacuous**. Clear
   `docs/examples/<stem>/` first — but never `rm -rf docs/examples`, which deletes a tracked
@@ -327,7 +372,7 @@ filters, so you will not see it). Pin `--vcs-ref` explicitly whenever you render
 
 **"Untouched" is not evidence.** If the template's render of a file is unchanged across the
 version pair, it would have been untouched either way. Diff the pristine renders first
-(§2.2); if identical, you have tested nothing.
+(§2.3); if identical, you have tested nothing.
 
 **`copier update` does not recreate a locally-deleted file — *except* a skip-listed one,
 which it recreates on every release.** `_skip_if_exists` means exactly what it says: skip
