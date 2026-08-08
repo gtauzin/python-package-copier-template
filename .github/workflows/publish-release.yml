@@ -26,10 +26,15 @@ jobs:
 
       - name: Find release tag
         id: find_tag
+        # The PR title reaches the shell through the environment, never through
+        # `${{ }}` inside `run:`. An expression is substituted into the script
+        # before bash parses it, so a title carrying shell metacharacters would
+        # execute here -- in a job that goes on to publish. An env var is data.
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           # Extract version from PR title (e.g., "chore(release): update CHANGELOG.md for v0.2.0")
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          VERSION=$(echo "$PR_TITLE" | grep -oP 'v[0-9]+\.[0-9]+\.[0-9]+' || echo "")
+          VERSION=$(printf '%s' "$PR_TITLE" | grep -oP 'v[0-9]+\.[0-9]+\.[0-9]+' || echo "")
 
           if [ -z "$VERSION" ]; then
             echo "No version found in PR title"
