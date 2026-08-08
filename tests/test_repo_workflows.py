@@ -18,6 +18,7 @@ from pathlib import Path
 import yaml
 from _tool_invocations import find_invocations, unreadable_annotations
 from _tool_invocations import unpinned as unpinned_invocations
+from _workflow_expressions import injection_sites, sites_in_text
 
 _REPO = Path(__file__).resolve().parent.parent
 _WORKFLOWS = _REPO / ".github" / "workflows"
@@ -81,6 +82,82 @@ def test_the_assertion_reads_this_repository_not_generated_output():
     assert _WORKFLOWS.is_dir(), "this repository has no .github/workflows to check"
     assert _repo_workflow_paths(), "no workflows found; the pin assertions would pass over an empty set"
     assert _setup_uv_steps(), "no astral-sh/setup-uv steps found in this repository's workflows"
+
+
+def test_no_untrusted_expression_reaches_a_shell():
+    """No `${{ github.event.* }}` is substituted into a `run:` or `script:` body here.
+
+    The template's half of this pair lives in `test_security_hardening.py` and asserts it
+    over the generated project. This half asserts it over the workflows this repository
+    runs, because the two trees drift: the repo's own `publish-release.yml` carried the
+    injection in a different job layout than the template's, so a fix to the template
+    would not have reached it and a check reading only the template would have called
+    this repository clean.
+
+    Untrusted values belong in `env:`, where the runner sets them as environment
+    variables and the shell reads them as data. See `_workflow_expressions` for why the
+    quotes around an interpolation do not help.
+    """
+    sites = [site for path in _repo_workflow_paths() for site in injection_sites(path)]
+    assert not sites, "untrusted expressions substituted into a script body (move them to `env:`): " + ", ".join(
+        f"{name}:{line} {expr}" for name, line, expr in sites
+    )
+
+
+def test_this_repo_scopes_its_own_codeql_scan():
+    """This repository reads a CodeQL config too, and it exists.
+
+    The template's half is in `test_security_hardening.py`. This repository's `codeql.yml`
+    is not generated from the template, so a fix there would leave this one scanning its
+    own test suite -- which is where five of the seven CodeQL false positives were.
+    """
+    workflow = (_WORKFLOWS / "codeql.yml").read_text(encoding="utf-8")
+    assert "config-file: ./.github/codeql/codeql-config.yml" in workflow, (
+        "codeql.yml does not point at a config, so the default suite scans tests/"
+    )
+    config = _REPO / ".github" / "codeql" / "codeql-config.yml"
+    assert config.is_file(), "codeql.yml points at a config that does not exist; the workflow would fail"
+    assert "- tests" in config.read_text(encoding="utf-8")
+
+
+def test_the_injection_scanner_finds_what_it_is_meant_to_find():
+    """A clean result means the scanner looked, not that the walk fell off line one.
+
+    `injection_sites` returning nothing is equally consistent with "no injections" and
+    "the block-scalar walk read nothing". Both placements the vulnerable code actually
+    took are exercised here, plus the two forms that must NOT fail: the safe `env:`
+    handoff this repository now uses, and `if:` conditions, which are evaluated by
+    Actions rather than spliced into a shell.
+    """
+    caught = sites_in_text(
+        "jobs:\n"
+        "  build:\n"
+        "    steps:\n"
+        "      - run: |\n"
+        '          PR_TITLE="${{ github.event.pull_request.title }}"\n'
+        "      - run: echo ${{ github.head_ref }}\n"
+        "      - uses: actions/github-script@v9\n"
+        "        with:\n"
+        "          script: |\n"
+        "            core.info(`${{ github.event.issue.title }}`)\n"
+    )
+    assert [expr for _, _, expr in caught] == [
+        "github.event.pull_request.title",
+        "github.head_ref",
+        "github.event.issue.title",
+    ]
+
+    allowed = sites_in_text(
+        "jobs:\n"
+        "  build:\n"
+        "    if: github.event.pull_request.merged == true\n"
+        "    steps:\n"
+        "      - env:\n"
+        "          PR_TITLE: ${{ github.event.pull_request.title }}\n"
+        "        run: |\n"
+        "          printf '%s' \"$PR_TITLE\"\n"
+    )
+    assert allowed == []
 
 
 def test_every_repo_setup_uv_step_pins_an_exact_version():

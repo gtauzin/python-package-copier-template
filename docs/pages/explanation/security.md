@@ -47,6 +47,14 @@ the jobs that must write are granted more.
 **A single merge gate.** No change lands until the full test suite and the security checks
 above all pass, enforced as one required status check.
 
+**Untrusted input never becomes code.** Values an outsider controls -- a pull request
+title, an issue body, a fork's branch name -- reach a workflow's shell only as environment
+variables. Workflow expressions are substituted into a script *before* the shell parses
+it, so interpolating one directly turns a crafted pull request title into commands that
+run with the release job's privileges. Quoting does not help; passing the value through
+`env:` does, because the runner then hands it over as data. A test asserts this over both
+the generated workflows and the ones this repository runs.
+
 **Scoped automation identity.** Release automation uses a short-lived, narrowly-scoped
 GitHub App token rather than a broad personal access token.
 

@@ -1,0 +1,23 @@
+# CodeQL scans the template, not the harness that exercises it.
+#
+# Without this file, `init` runs the default query suite over the whole checkout. The
+# security queries then read test assertions as if they were production code paths, and
+# report on them: `py/incomplete-url-substring-sanitization` fired five times on lines
+# like `assert "docs.python.org" in str(i)`, which assert that generated config content
+# is present rather than making any trust decision about a URL.
+#
+# Every such alert is a false positive, and dismissing them one by one does not hold:
+# the shape recurs every time a test asserts on a URL, and this repository's tests assert
+# on generated URLs constantly. Excluding the directory is the fix that stays fixed.
+#
+# The cost is real and deliberate: CodeQL no longer analyses test code. It has no
+# untrusted input and is already covered by ruff's flake8-bandit (`S`) ruleset, which
+# runs over the whole repository on every change. `docs_build/`, `noxfile.py` and the
+# template sources stay in scope.
+#
+# The generated projects get the equivalent file from
+# `template/.github/{% if include_actions and repo_visibility == 'public' %}codeql{% endif %}/`.
+name: "python-package-copier (source only)"
+
+paths-ignore:
+  - tests
