@@ -1281,9 +1281,21 @@ def test_generated_project_nox_sessions(copie_session_default):
 
     # Verify expected outputs exist
     assert (site_path(result.project_dir) / "index.html").is_file(), "Docs site not generated"
-    assert (result.project_dir / ".coverage").exists() or (result.project_dir / "coverage.xml").exists(), (
-        "Coverage file not generated"
+    # Under `.artifacts/`, not the project root: the coverage paths are configured in
+    # pyproject.toml so no report lands beside the source. Asserting the old root paths
+    # here would fail the moment they moved, which is the point -- but asserting only
+    # "somewhere" would pass even if a report reappeared at the root.
+    artifacts = result.project_dir / ".artifacts"
+    assert (artifacts / ".coverage").exists() or (artifacts / "coverage.xml").exists(), (
+        "Coverage file not generated under .artifacts/"
     )
+
+    strays = [
+        name
+        for name in ("site", "htmlcov", "coverage.xml", ".coverage", ".nox", ".pytest_cache", ".ruff_cache")
+        if (result.project_dir / name).exists()
+    ]
+    assert not strays, f"real nox sessions dropped output at the project root: {strays}"
 
 
 @pytest.mark.integration
