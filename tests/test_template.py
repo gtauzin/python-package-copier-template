@@ -1310,11 +1310,13 @@ def test_generated_source_files_are_valid_python(copie):
     result = copie.copy(extra_answers={"include_examples": True})
     assert result.exit_code == 0
 
-    # Find all Python files in the generated project (excluding site/ and .venv/)
+    # Find all Python files the template renders, excluding build output and
+    # environments. `.artifacts/` holds the nox environments now, so without it this
+    # walk parses every third-party package a session installed.
     python_files = []
     for py_file in result.project_dir.rglob("*.py"):
-        # Skip generated site directory and virtual environments
-        if "site/" in str(py_file) or ".venv/" in str(py_file) or "__pycache__" in str(py_file):
+        parts = set(py_file.relative_to(result.project_dir).parts)
+        if parts & {".artifacts", ".venv", "site", "__pycache__", ".nox"}:
             continue
         python_files.append(py_file)
 
@@ -3135,10 +3137,16 @@ def test_no_rendered_file_ends_in_a_blank_line(request, fixture_name):
     project_dir = request.getfixturevalue(fixture_name).project_dir
     suffixes = {".py", ".md", ".yml", ".yaml", ".toml", ".css", ".js", ".jinja", ".cfg", ".txt", ".html"}
     # Only what the template renders. A fixture that has been built or synced
-    # carries `.venv/` and `site/`, and third-party packages ship files ending in
-    # a blank line -- 29 of them in one measurement, which would bury the four
+    # carries `.venv/` and the built site, and third-party packages ship files ending
+    # in a blank line -- 29 of them in one measurement, which would bury the four
     # that matter. Scoping this keeps a failure readable and about our own files.
-    ignored = {".git", ".venv", "site", "__pycache__", ".nox", "node_modules"}
+    #
+    # `.artifacts` covers the built site, the coverage HTML and the nox environments,
+    # which now live under it rather than at the project root. That move is why this
+    # entry exists: with the envdir inside the tree, a session that had already run
+    # put third-party `site-packages` in this walk's path, and the test failed on
+    # whichever job happened to build first.
+    ignored = {".git", ".venv", ".artifacts", "site", "__pycache__", ".nox", "node_modules"}
     offenders = []
     missing_newline = []
     for path in project_dir.rglob("*"):
