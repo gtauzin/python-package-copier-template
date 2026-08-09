@@ -1,7 +1,7 @@
 """Tests for the docs build steps and the git-ref helper."""
 
 import pytest
-from _build_layout import BUILD_DIR
+from _build_layout import BUILD_DIR, site_path
 from test_template import _load_build, _load_git_ref
 
 
@@ -106,7 +106,7 @@ def test_on_post_build_copies_html(copie_with_examples, tmp_path):
     assert html_file.is_file(), "HTML file not exported by on_pre_build"
 
     # Verify HTML was also copied to site by on_post_build
-    site_html = copie_with_examples.project_dir / "site" / "examples" / "hello" / "index.html"
+    site_html = site_path(copie_with_examples.project_dir) / "examples" / "hello" / "index.html"
     assert site_html.is_file(), "Standalone HTML not copied to site"
 
     # Verify the HTML file is substantial (not just a stub)
@@ -195,7 +195,7 @@ def test_on_post_build_converts_html_to_markdown(copie_with_examples, tmp_path):
     assert result.returncode == 0, f"build_docs failed: {result.stderr}"
 
     # Verify markdown files exist in site directory
-    site_dir = copie_with_examples.project_dir / "site"
+    site_dir = site_path(copie_with_examples.project_dir)
     assert (site_dir / "index.md").is_file(), "index.md not found in site"
     assert (site_dir / "pages" / "tutorials" / "getting-started.md").is_file(), "getting-started.md not found in site"
     assert (site_dir / "pages" / "reference" / "api.md").is_file(), "api.md not found"
@@ -315,7 +315,7 @@ def test_markdown_accessible_after_docs_build(copie_with_examples):
 
     assert result.returncode == 0, f"build_docs failed: {result.stderr}"
 
-    site_dir = copie_with_examples.project_dir / "site"
+    site_dir = site_path(copie_with_examples.project_dir)
 
     # Verify both HTML and markdown exist for each page
     pages = [

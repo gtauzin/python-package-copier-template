@@ -154,8 +154,14 @@ jobs:
         uses: codecov/codecov-action@v7
         with:
           use_oidc: true
-          files: coverage.xml
+          # Must be the path `[tool.coverage.xml] output` in pyproject.toml writes.
+          files: .artifacts/coverage.xml
           fail_ci_if_error: true
+          # Without this the uploader searches the workspace when `files` names
+          # nothing and reports success on whatever it finds, so `fail_ci_if_error`
+          # above measures nothing. This step pointed at a stale `coverage.xml` and
+          # passed on exactly that fallback.
+          disable_search: true
 
   # Single required status check. The branch ruleset requires this one job, not the
   # individual jobs above: test-fast is a matrix (its check-run names vary by OS/Python and

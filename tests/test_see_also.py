@@ -13,7 +13,7 @@ import importlib.util
 import sys
 
 import pytest
-from _build_layout import BUILD_DIR
+from _build_layout import BUILD_DIR, site_path
 
 _MODELS = '''\
 """Models."""
@@ -236,7 +236,7 @@ def test_see_also_renders_as_a_resolved_link_end_to_end(copie):
     assert build.returncode == 0, f"build failed:\n{build.stdout}\n{build.stderr}"
 
     # hello()'s See Also names Greeter (the sample package ships this).
-    page = project_dir / "site" / "pages" / "api" / "generated" / "test_project.hello.hello" / "index.html"
+    page = site_path(project_dir) / "pages" / "api" / "generated" / "test_project.hello.hello" / "index.html"
     assert page.is_file(), "generated page for hello() not found"
     html = page.read_text(encoding="utf-8")
     assert 'class="autorefs' in html and "Greeter" in html, "See Also reference did not resolve to an autorefs link"

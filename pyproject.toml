@@ -66,6 +66,7 @@ packages = ["template"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+cache_dir = ".artifacts/pytest"
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -86,11 +87,18 @@ markers = [
 ]
 
 [tool.coverage.run]
+data_file = ".artifacts/.coverage"
 source = ["tests"]
 omit = [
     "tests/__pycache__/*",
     "tests/conftest.py",
 ]
+
+[tool.coverage.html]
+directory = ".artifacts/htmlcov"
+
+[tool.coverage.xml]
+output = ".artifacts/coverage.xml"
 
 [tool.coverage.report]
 exclude_lines = [
@@ -105,6 +113,7 @@ exclude_lines = [
 
 [tool.ruff]
 line-length = 120
+cache-dir = ".artifacts/ruff"
 target-version = "py313"
 show-fixes = true
 
@@ -162,7 +171,7 @@ disable = [
 # how a skill with four markdown violations sat on a branch indefinitely.
 # `.md.jinja` files are not discovered (rumdl keys on the extension), so only the
 # verbatim-shipped markdown is checked, which is exactly the set that needs it.
-exclude = ["CHANGELOG.md", "site", "htmlcov", ".nox", ".venv"]
+exclude = ["CHANGELOG.md", ".artifacts", ".venv"]
 
 [tool.rumdl.per-file-ignores]
 ".github/PULL_REQUEST_TEMPLATE.md" = ["MD041"]  # PR template starts with checklist

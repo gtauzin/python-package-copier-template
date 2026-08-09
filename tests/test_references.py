@@ -14,7 +14,7 @@ import logging
 import sys
 
 import pytest
-from _build_layout import BUILD_DIR
+from _build_layout import BUILD_DIR, site_path
 
 _MODELS = '''\
 """Models."""
@@ -247,7 +247,7 @@ def test_references_render_as_a_list_end_to_end(copie):
     )
     assert build.returncode == 0, f"build failed:\n{build.stdout}\n{build.stderr}"
 
-    page = project_dir / "site" / "pages" / "api" / "generated" / "test_project.hello.Greeter" / "index.html"
+    page = site_path(project_dir) / "pages" / "api" / "generated" / "test_project.hello.Greeter" / "index.html"
     assert page.is_file(), "generated page for Greeter not found"
     html = page.read_text(encoding="utf-8")
     # The References section reached the page as a list, and no RST marker leaked.

@@ -416,3 +416,39 @@ def test_this_repo_authenticates_git_cliff():
             "the git-cliff step has no GITHUB_TOKEN in its env, so its GitHub API calls go out "
             "anonymous and the release fails whenever the shared IP quota is exhausted"
         )
+
+
+def test_repo_coverage_upload_names_the_file_it_writes():
+    """This repo's own Codecov step must name the path its coverage config produces.
+
+    `tests/test_artifact_paths.py` asserts this over a generated project. Nothing
+    asserted it over the workflow this repository runs, and that gap was not
+    hypothetical: while fixing the template's dead upload path, this repo's own step
+    kept pointing at a root `coverage.xml` that had moved under `.artifacts/`. It
+    passed anyway, on the same uploader fallback the template fix exists to remove.
+
+    That is this repo's recurring failure shape -- a property enforced downstream and
+    quietly absent upstream -- reproduced inside the change that was fixing it.
+    """
+    pyproject = (_REPO / "pyproject.toml").read_text(encoding="utf-8")
+    written = re.search(r"\[tool\.coverage\.xml\][^\[]*?output\s*=\s*\"([^\"]+)\"", pyproject, re.S)
+    assert written, "pyproject.toml does not set [tool.coverage.xml] output; the report path is undefined"
+
+    workflow = yaml.safe_load((_WORKFLOWS / "tests.yml").read_text(encoding="utf-8"))
+    uploads = [
+        step
+        for job in (workflow.get("jobs") or {}).values()
+        for step in (job.get("steps") or [])
+        if str(step.get("uses", "")).startswith("codecov/codecov-action")
+    ]
+    assert uploads, "no Codecov upload step found in tests.yml; this check would pass over nothing"
+
+    for step in uploads:
+        params = step.get("with") or {}
+        assert params.get("files") == written.group(1), (
+            f"the coverage upload reads {params.get('files')!r} but the coverage config writes {written.group(1)!r}"
+        )
+        assert params.get("disable_search") is True, (
+            "the coverage upload leaves search enabled, so a wrong `files` path is rescued by the "
+            "uploader's fallback and `fail_ci_if_error` measures nothing"
+        )

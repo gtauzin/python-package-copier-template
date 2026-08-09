@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 import yaml
-from _build_layout import BUILD_DIR
+from _build_layout import BUILD_DIR, TEMPLATES_DIR, mkdocstrings_templates, site_path
 
 
 def test_template_creates_project(copie_session_default):
@@ -25,7 +25,7 @@ def test_template_creates_project(copie_session_default):
         "noxfile.py",
         "mkdocs.yml",
         ".pre-commit-config.yaml",
-        "CODE_OF_CONDUCT.md",
+        ".github/CODE_OF_CONDUCT.md",
     ]
     expected_dirs = [
         "src",
@@ -813,9 +813,12 @@ def test_github_actions_when_enabled(copie):
     assert (workflows_dir / "nightly.yml").is_file(), "nightly.yml workflow not created"
 
     # Check for GitHub configuration files. Renovate replaces Dependabot, so the
-    # config lives at the repo root as renovate.json and dependabot.yml is gone --
+    # config lives at .github/renovate.json and dependabot.yml is gone --
     # two bots would open duplicate PRs for the same update.
-    assert (result.project_dir / "renovate.json").is_file(), "renovate.json not created"
+    assert (result.project_dir / ".github" / "renovate.json").is_file(), ".github/renovate.json not created"
+    assert not (result.project_dir / "renovate.json").exists(), (
+        "a root renovate.json survives beside the .github/ copy; Renovate would read only one"
+    )
     assert not (github_dir / "dependabot.yml").exists(), (
         "dependabot.yml should not be generated (replaced by renovate.json)"
     )
@@ -844,8 +847,8 @@ def test_renovate_config_self_contained_by_default(copie):
     """
     result = copie.copy()
 
-    renovate = result.project_dir / "renovate.json"
-    assert renovate.is_file(), "renovate.json not created"
+    renovate = result.project_dir / ".github" / "renovate.json"
+    assert renovate.is_file(), ".github/renovate.json not created"
 
     config = json.loads(renovate.read_text(encoding="utf-8"))
     assert "packageRules" in config, "self-contained config is missing its own packageRules"
@@ -862,8 +865,8 @@ def test_renovate_config_extends_preset_when_set(copie):
     """
     result = copie.copy(extra_answers={"renovate_preset": "stateful-y/renovate-config"})
 
-    renovate = result.project_dir / "renovate.json"
-    assert renovate.is_file(), "renovate.json not created"
+    renovate = result.project_dir / ".github" / "renovate.json"
+    assert renovate.is_file(), ".github/renovate.json not created"
 
     config = json.loads(renovate.read_text(encoding="utf-8"))
     assert config.get("extends") == ["github>stateful-y/renovate-config"], (
@@ -1095,7 +1098,7 @@ def test_markdown_docs_created_and_clean(copie):
     )
 
     # Verify site directory exists
-    site_dir = result.project_dir / "site"
+    site_dir = site_path(result.project_dir)
     assert site_dir.is_dir(), "site/ directory not created by build_docs"
 
     # Find all markdown files in site/
@@ -1177,7 +1180,7 @@ def test_three_tier_documentation_system(copie):
     assert "examples/**/CLAUDE.md" in mkdocs_content, "mkdocs.yml doesn't exclude CLAUDE.md files"
 
     # Tier 3: Verify markdown copies were created
-    markdown_copy = result.project_dir / "site" / "index.md"
+    markdown_copy = site_path(result.project_dir) / "index.md"
     assert markdown_copy.is_file(), "Markdown copy not created (Tier 3)"
 
     # Verify all three tiers are present
@@ -1277,10 +1280,22 @@ def test_generated_project_nox_sessions(copie_session_default):
         )
 
     # Verify expected outputs exist
-    assert (result.project_dir / "site" / "index.html").is_file(), "Docs site not generated"
-    assert (result.project_dir / ".coverage").exists() or (result.project_dir / "coverage.xml").exists(), (
-        "Coverage file not generated"
+    assert (site_path(result.project_dir) / "index.html").is_file(), "Docs site not generated"
+    # Under `.artifacts/`, not the project root: the coverage paths are configured in
+    # pyproject.toml so no report lands beside the source. Asserting the old root paths
+    # here would fail the moment they moved, which is the point -- but asserting only
+    # "somewhere" would pass even if a report reappeared at the root.
+    artifacts = result.project_dir / ".artifacts"
+    assert (artifacts / ".coverage").exists() or (artifacts / "coverage.xml").exists(), (
+        "Coverage file not generated under .artifacts/"
     )
+
+    strays = [
+        name
+        for name in ("site", "htmlcov", "coverage.xml", ".coverage", ".nox", ".pytest_cache", ".ruff_cache")
+        if (result.project_dir / name).exists()
+    ]
+    assert not strays, f"real nox sessions dropped output at the project root: {strays}"
 
 
 @pytest.mark.integration
@@ -1688,7 +1703,7 @@ def test_code_of_conduct_content(copie):
     assert result.exit_code == 0
     assert result.exception is None
 
-    coc_path = result.project_dir / "CODE_OF_CONDUCT.md"
+    coc_path = result.project_dir / ".github" / "CODE_OF_CONDUCT.md"
     assert coc_path.is_file()
 
     content = coc_path.read_text(encoding="utf-8")
@@ -3075,7 +3090,7 @@ def test_mkdocstrings_template_overrides_ship(request, fixture_name):
     import yaml
 
     project_dir = request.getfixturevalue(fixture_name).project_dir
-    templates = project_dir / "docs_theme" / "templates" / "python" / "material"
+    templates = mkdocstrings_templates(project_dir)
     for rel in ("docstring.html.jinja", "class.html.jinja", "function.html.jinja", "docstring/admonition.html.jinja"):
         assert (templates / rel).is_file(), f"missing override: {rel}"
 
@@ -3089,7 +3104,7 @@ def test_mkdocstrings_template_overrides_ship(request, fixture_name):
     _loader.add_constructor("!ENV", lambda _l, _n: None)
     config = yaml.load(raw, Loader=_loader)
     plugin = next(p["mkdocstrings"] for p in config["plugins"] if isinstance(p, dict) and "mkdocstrings" in p)
-    assert plugin.get("custom_templates") == "docs_theme/templates", (
+    assert plugin.get("custom_templates") == TEMPLATES_DIR, (
         "custom_templates must sit at plugin level, not under handlers.python.options"
     )
     assert "custom_templates" not in plugin["handlers"]["python"].get("options", {}), (
@@ -3236,7 +3251,7 @@ def test_section_headings_reach_the_table_of_contents(copie, include_examples, t
     )
     assert build.returncode == 0, build.stderr[-2000:]
 
-    page = project_dir / "site" / "pages" / "api" / "generated" / "test_project.hello.Greeter" / "index.html"
+    page = site_path(project_dir) / "pages" / "api" / "generated" / "test_project.hello.Greeter" / "index.html"
     html = page.read_text(encoding="utf-8")
     toc = _toc_hrefs(html)
     assert toc, "no table of contents was parsed -- the assertions below would be vacuous"
@@ -3812,9 +3827,9 @@ _CLASSIFICATION_PATTERNS = (
     # mkdocstrings template overrides. A whole tree rather than a line per file:
     # its shape follows mkdocstrings' own template layout, so it changes when
     # that does, and a per-file list would go stale on every handler bump. Lives
-    # under docs_theme/ (outside docs_dir) so the successor engine cannot publish
+    # under docs_build/ (outside docs_dir) so the successor engine cannot publish
     # it, since that engine ignores exclude_docs.
-    "docs_theme/templates/",
+    f"{TEMPLATES_DIR}/",
 )
 
 

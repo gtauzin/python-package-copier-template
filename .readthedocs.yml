@@ -20,8 +20,10 @@ build:
     - asdf global uv latest
     # Docs deps only; this repo's docs do not import the project.
     - uv sync --group docs --no-install-project
-    # Zensical has no site-dir flag: it builds to the default `site/`. Read the
+    # Zensical has no site-dir flag: the site directory comes from `site_dir` in
+    # mkdocs.yml, and this copy MUST match it. There is no discovery and no error
+    # if it does not, only an empty publish or a failed copy. Read the
     # Docs publishes whatever is under $READTHEDOCS_OUTPUT/html.
     - uv run --no-sync zensical build
     - mkdir -p $READTHEDOCS_OUTPUT/html
-    - cp -r site/. $READTHEDOCS_OUTPUT/html/
+    - cp -r .artifacts/site/. $READTHEDOCS_OUTPUT/html/

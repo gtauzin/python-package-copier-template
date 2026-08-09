@@ -35,20 +35,16 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
-htmlcov/
+# Throwaway build output. Every tool that writes one is configured to write it
+# here rather than at the repo root: coverage, the pytest and ruff caches, the
+# nox environments and the built site. One entry replaces the nine it used to take.
+.artifacts/
 .tox/
-.nox/
-.coverage
-.coverage.*
 .cache
 nosetests.xml
-coverage.xml
 *.cover
 *.py,cover
-.hypothesis/
-.pytest_cache/
 cover/
-junit.*.xml
 
 # Translations
 *.mo
@@ -122,7 +118,6 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
 
 # mypy
 .mypy_cache/
@@ -139,7 +134,6 @@ dmypy.json
 cython_debug/
 
 # Ruff
-.ruff_cache/
 
 # ty type checker
 .ty_cache/
