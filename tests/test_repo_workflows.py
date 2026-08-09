@@ -446,8 +446,7 @@ def test_repo_coverage_upload_names_the_file_it_writes():
     for step in uploads:
         params = step.get("with") or {}
         assert params.get("files") == written.group(1), (
-            f"the coverage upload reads {params.get('files')!r} but the coverage config writes "
-            f"{written.group(1)!r}"
+            f"the coverage upload reads {params.get('files')!r} but the coverage config writes {written.group(1)!r}"
         )
         assert params.get("disable_search") is True, (
             "the coverage upload leaves search enabled, so a wrong `files` path is rescued by the "
