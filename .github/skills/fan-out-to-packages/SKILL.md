@@ -105,8 +105,7 @@ a template bug: report it, do not accommodate it.
    `gh api "repos/OWNER/REPO/contents/.copier-answers.yml?ref=main"` is authoritative and takes
    one line per repo. I had already caught this same staleness once in the same session, on one
    repo, and fixed it there without generalising — which is how it survived to reach five briefs.
-
-9. **Check where each repo's PR branch actually sits, not where `main` sits.** This fleet
+10. **Check where each repo's PR branch actually sits, not where `main` sits.** This fleet
    carries one long-lived `template-update/*` PR per repo whose branch name is frozen at the
    release that created it; the content advances every release while `main` stays behind. The
    branch name is not evidence of its version — read `_commit` from `.copier-answers.yml` on
