@@ -147,6 +147,34 @@ Group a section index under `##` headings only when it is big enough to need it 
 update lands. Delete it; do not re-add ignore entries. A plain `git add -A` right after the
 update will otherwise commit an entire built site.
 
+**A relocated file DESTROYS local content, silently.** `copier update` writes the file at
+its new path **and deletes the old one itself** — no conflict, no `.rej`, no prompt. Measured
+on yohou in the v0.41.0 round: two curated prose edits in `CONTRIBUTING.md` were destroyed by
+the move and recovered only with `git show HEAD:CONTRIBUTING.md`. Nothing in the update's
+output mentioned it.
+
+This entry previously said the opposite — that the old copy is *left behind* as a duplicate,
+so "carry the content over before deleting". There is no delete of yours to precede. An
+earlier release did leave both copies, so **verify which happened** rather than assuming:
+
+- After the update, `git show HEAD:<old-path> | diff - <new-path>`, and re-apply anything
+  local the template's copy does not carry.
+- If the old copy *did* survive, remove it — the consuming tool reads exactly one of the two
+  and ignores the other without a word (GitHub reads `.github/CODEOWNERS` and never a root
+  `CODEOWNERS`; Renovate loads one config).
+- **Verify by grep, not `git status`.** An unresolved `.gitignore` conflict makes git omit the
+  path from status entirely while the file sits on disk. This has fired before.
+- Do not assume a relocated file is byte-identical to the template's just because it is
+  Tier 1. This file claimed that on the strength of a `wc -l` sweep showing all seven repos
+  at matching line counts — the exact mistake §2.5 warns about, made while writing the
+  warning. yohou differed at an identical line count.
+
+**Old build output stops being ignored.** The `.gitignore` entries for `site/`, `htmlcov/`,
+`coverage.xml`, `.coverage`, `.nox/`, `.pytest_cache/` and `.ruff_cache/` collapse into one
+`.artifacts/`. Whatever a previous build left at the root becomes untracked the moment the
+update lands. Delete it; do not re-add ignore entries. A plain `git add -A` right after the
+update will otherwise commit an entire built site.
+
 **A relocated file arrives as a duplicate, not a move.** `copier update` renders the file at
 its new path and leaves the old one on disk. Nothing reports it: the update exits 0, the new
 file is present, CI is green. For the files v-next moves into `.github/`, the consuming tool
@@ -159,7 +187,16 @@ whichever copy the maintainer is *not* editing.
 - **Verify by grep, not by `git status`.** If an unresolved `.gitignore` conflict still lists
   a path, git omits the file from status entirely — the delivery looks clean while the stale
   file sits there. This has fired before.
-- All five are Tier 1 and byte-identical across the fleet, so nothing local is lost.
+- **Do NOT assume the five are byte-identical, even though they are Tier 1.** This file said
+  they were, on the strength of a `wc -l` sweep that found all seven repos at 29/4/6 lines --
+  the exact mistake §2.5 warns about two sections up, made while writing the warning. yohou's
+  `CONTRIBUTING.md` carries **2 curated prose edits** at an identical line count. Diff each
+  root copy against the pristine render before deleting it, and carry any local content over
+  to the `.github/` copy first. Deleting blind loses it silently, which is the whole failure
+  mode this entry exists to prevent.
+- yohou's root `CONTRIBUTING.md` also links `docs/pages/how-to/contribute.md`, a page it
+  deleted for its curated `contributing.md`. The link is already broken; fix it to the real
+  page while moving the file rather than transcribing the break into `.github/`.
 
 **Copier destroys local content silently.**
 - It **overwrites binaries every run**, regardless of diff — no conflict, no `.rej`, only a

@@ -25,7 +25,7 @@ def test_template_creates_project(copie_session_default):
         "noxfile.py",
         "mkdocs.yml",
         ".pre-commit-config.yaml",
-        ".github/CODE_OF_CONDUCT.md",
+        "CODE_OF_CONDUCT.md",
     ]
     expected_dirs = [
         "src",
@@ -1703,7 +1703,7 @@ def test_code_of_conduct_content(copie):
     assert result.exit_code == 0
     assert result.exception is None
 
-    coc_path = result.project_dir / ".github" / "CODE_OF_CONDUCT.md"
+    coc_path = result.project_dir / "CODE_OF_CONDUCT.md"
     assert coc_path.is_file()
 
     content = coc_path.read_text(encoding="utf-8")

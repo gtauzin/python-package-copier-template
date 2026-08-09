@@ -153,9 +153,11 @@ file_gates:
   # control takes, and a manifest reading only those was blind to CODEOWNERS and
   # SECURITY.md -- which is how both reached seven generated projects and not this one.
   #
-  # The community-health files moved to `.github/`, where GitHub reads them with the
-  # same effect. The keys carry that path because they are derived from the rendered
-  # project, and a key naming the old root path would silently answer nothing.
+  # `CODEOWNERS` and the Renovate config moved to `.github/`, where their consumers
+  # read them with the same effect; `SECURITY.md`, `CONTRIBUTING.md` and
+  # `CODE_OF_CONDUCT.md` deliberately stay at the root, where a visitor sees them.
+  # Keys carry whichever path is real, because they are derived from the rendered
+  # project -- a key naming the wrong one would silently answer nothing.
   file:.editorconfig: {status: matched, reason: byte-identical to the shipped copy.}
   file:.gitignore: {status: matched, reason: this repo maintains its own, with the same shape.}
   file:.pre-commit-config.yaml: {status: matched, reason: same hook set, scoped for a repo with no src/.}
@@ -169,20 +171,20 @@ file_gates:
   file:README.md: {status: matched, reason: present.}
   file:LICENSE: {status: matched, reason: present.}
   file:CHANGELOG.md: {status: matched, reason: present, generated the same way.}
-  file:.github/CODE_OF_CONDUCT.md: {status: matched, reason: present.}
+  file:CODE_OF_CONDUCT.md: {status: matched, reason: present.}
   file:.github/PULL_REQUEST_TEMPLATE.md:
     status: matched
     reason: >-
       Present. Newly visible rather than newly shipped: widening the derivation to the
-      top of .github/ (so the governance files stay measured after they moved there)
-      brought this one into view with it. It was already in both trees.
-  file:.github/CONTRIBUTING.md:
+      top of .github/ (so CODEOWNERS stays measured after it moved there) brought this
+      one into view with it. It was already in both trees.
+  file:CONTRIBUTING.md:
     status: excluded
     reason: >-
       Generated projects get a short pointer to their published contributing guide.
       This repo's equivalent lives at docs/pages/how-to/contribute.md and is reached
-      from the README, so a second stub under .github/ would be a third copy to keep
-      in step for no reader's benefit.
+      from the README, so a second stub at the root would be a third copy to keep in
+      step for no reader's benefit.
   file:CLAUDE.md: {status: matched, reason: present and now tracked, reconciled with the Copilot copy.}
   file:.copier-answers.yml:
     status: excluded
@@ -197,7 +199,7 @@ file_gates:
       task 9.4 depends on one existing here for review-based protection. The protect-main
       ruleset currently enforces review without it. Revisit if review ever needs to route
       by path; until then a single-maintainer CODEOWNERS adds a file and no signal.
-  file:.github/SECURITY.md:
+  file:SECURITY.md:
     status: matched
     reason: >-
       Adopted, with wording corrected for what this repo is: a fix reaches a generated

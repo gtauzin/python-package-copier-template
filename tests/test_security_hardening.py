@@ -152,17 +152,18 @@ def test_gitleaks_hook_and_gating_ci_job(copie):
 def test_governance_files_ship_for_every_repo(copie):
     """SECURITY.md and CODEOWNERS ship regardless of visibility.
 
-    Both live under `.github/`, where GitHub reads them with the same effect as
-    from the root: the Security tab reads `.github/SECURITY.md` and code-owner
-    review assignment reads `.github/CODEOWNERS`. Where both a root and a
-    `.github/` copy exist GitHub reads only the latter, so the root copy must be
-    absent rather than merely stale.
+    `CODEOWNERS` lives under `.github/`, where code-owner review assignment reads
+    it with the same effect as from the root. `SECURITY.md` deliberately stays at
+    the root, where it is visible in the repository listing a visitor first sees.
+    Where both a root and a `.github/` copy of either exist, GitHub reads only the
+    `.github/` one -- so whichever location is chosen, the other must be absent
+    rather than merely stale.
     """
     for answers in ({}, {"repo_visibility": "private", "include_codecov": False}):
         result = copie.copy(extra_answers=answers)
-        assert (result.project_dir / ".github" / "SECURITY.md").exists()
+        assert (result.project_dir / "SECURITY.md").exists()
         assert (result.project_dir / ".github" / "CODEOWNERS").exists()
-        assert not (result.project_dir / "SECURITY.md").exists()
+        assert not (result.project_dir / ".github" / "SECURITY.md").exists()
         assert not (result.project_dir / "CODEOWNERS").exists()
 
 

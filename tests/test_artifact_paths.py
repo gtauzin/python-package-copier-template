@@ -257,12 +257,39 @@ def _justfile_site_dir(project_dir):
     return f"{root.group(1)}/{leaf.group(1)}"
 
 
+# `site/` with its slash catches the common form, but not `tar -C site .` or a bare
+# quoted "site" -- and the tar form is precisely what broke a project's docs deploy.
+# Matching a bare `site` token everywhere is not the answer either: measured against a
+# real repo it produced 33 hits, all prose ("call site", "warn site", "the built
+# site"). A check that noisy gets ignored, which is the failure this file exists to
+# prevent. So the slashless forms are matched only where `site` is unambiguously a
+# path operand.
+_PATH_OPERAND_PREFIXES = ("-C ", "cd ", "-o ", "--site-dir ", "--site-dir=")
+
+
+def _pattern_for(name):
+    """Regex matching `name` used as a path, not merely mentioned."""
+    if not name.endswith("/"):
+        return rf"(?<![\w./-]){re.escape(name)}(?![\w-])"
+
+    bare = name.rstrip("/")
+    alternatives = [rf"(?<![\w./-]){re.escape(name)}"]
+    alternatives += [rf"(?<={re.escape(p)}){re.escape(bare)}(?![\w./-])" for p in _PATH_OPERAND_PREFIXES]
+    alternatives.append(rf"[\"']{re.escape(bare)}[\"']")
+    return "|".join(alternatives)
+
+
 def _hardcoded_relocated_paths(project_dir):
     """Lines that name a relocated path with no tie to the artifacts directory."""
     offenders = []
 
     for path in project_dir.rglob("*"):
         if not path.is_file() or ".git" in path.parts:
+            continue
+        # The scanner defines these names, so it is the one file that must contain
+        # them. Excluding it by name rather than by pattern keeps the exemption
+        # narrow enough that it cannot quietly cover anything else.
+        if path.name == "test_artifact_paths.py":
             continue
         try:
             text = path.read_text(encoding="utf-8")
@@ -273,8 +300,7 @@ def _hardcoded_relocated_paths(project_dir):
             # An entry ending in `/` is already delimited by the slash, and what
             # follows it is the rest of the path. Applying the word-boundary guard
             # there would reject every real use (`site/index.html`) and match none.
-            trailing = "" if name.endswith("/") else r"(?![\w-])"
-            for match in re.finditer(rf"(?<![\w./-]){re.escape(name)}{trailing}", text):
+            for match in re.finditer(_pattern_for(name), text):
                 line = text[: match.start()].rsplit("\n", 1)[-1] + text[match.start() :].split("\n", 1)[0]
                 # A comment explaining the layout may name any of these freely.
                 if line.lstrip().startswith("#"):
@@ -376,4 +402,43 @@ def test_each_redirect_points_under_the_artifacts_directory(copie_session_defaul
     assert match, f"{config_file} does not set {key}; that output would land at the project root"
     assert match.group(1).startswith(artifacts_dir), (
         f"{config_file} sets {key} to {match.group(1)!r}, outside {artifacts_dir!r}"
+    )
+
+
+def test_a_referenced_test_file_is_actually_generated(copie_session_default):
+    """A generated file may not cite a test the generated project does not have.
+
+    Five generated files told the reader that `tests/test_artifact_paths.py` "asserts"
+    or "enforces" the path agreement. The file existed only in the template repo, so
+    every generated project carried a written guarantee with nothing behind it -- and
+    the one place the check would have paid off is exactly there, on a project's own
+    bespoke workflow that the template cannot see. A fan-out found such a workflow
+    tarring up the old site path, which would have broken its published docs.
+
+    That is this change's own defect shape: a claim of enforcement that enforces
+    nothing. Generalised here rather than fixed once, so the next comment citing a
+    test has to be true.
+    """
+    project_dir = copie_session_default.project_dir
+
+    cited = set()
+    for path in project_dir.rglob("*"):
+        if not path.is_file() or ".git" in path.parts:
+            continue
+        # The scanner defines these names, so it is the one file that must contain
+        # them. Excluding it by name rather than by pattern keeps the exemption
+        # narrow enough that it cannot quietly cover anything else.
+        if path.name == "test_artifact_paths.py":
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        cited.update(re.findall(r"tests/test_[a-z0-9_]+\.py", text))
+
+    missing = sorted(name for name in cited if not (project_dir / name).is_file())
+
+    assert not missing, (
+        "generated files cite tests that the generated project does not contain, so the "
+        f"guarantee they describe does not exist there: {missing}"
     )
