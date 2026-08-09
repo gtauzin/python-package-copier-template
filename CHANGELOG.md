@@ -12,10 +12,10 @@ This **minor release** includes 2 commits.
 
 
 ### Documentation
-- Record what the v0.40.1 round established  ([#278](https://github.com/stateful-y/python-package-copier/pull/278)) by @gtauzin
+- Correct four claims in the fleet-rollout guide and add a missing hazard  ([#278](https://github.com/stateful-y/python-package-copier/pull/278)) by @gtauzin
 
 ### Refactoring
-- Give a project one artifacts dir and a leaner root  ([#279](https://github.com/stateful-y/python-package-copier/pull/279)) by @gtauzin
+- Move build output and GitHub config out of a generated project's root  ([#279](https://github.com/stateful-y/python-package-copier/pull/279)) by @gtauzin
 
 ### Contributors
 
