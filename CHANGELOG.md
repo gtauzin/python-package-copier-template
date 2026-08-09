@@ -12,11 +12,11 @@ This **patch release** includes 3 commits.
 
 
 ### Bug Fixes
-- Stop the shipped path gate failing a project that reads no site  ([#285](https://github.com/stateful-y/python-package-copier/pull/285)) by @gtauzin
+- Fix the artifact-path check failing a project that publishes docs another way  ([#285](https://github.com/stateful-y/python-package-copier/pull/285)) by @gtauzin
 
 ### Documentation
-- Title a fan-out PR after the change, not the mechanism  ([#282](https://github.com/stateful-y/python-package-copier/pull/282)) by @gtauzin
-- Remove a retracted hazard, and record the stale-baseline trap  ([#284](https://github.com/stateful-y/python-package-copier/pull/284)) by @gtauzin
+- Describe the change in template-update PR titles instead of the version  ([#282](https://github.com/stateful-y/python-package-copier/pull/282)) by @gtauzin
+- Correct stale claims in the fleet-rollout guide and drop a retracted one  ([#284](https://github.com/stateful-y/python-package-copier/pull/284)) by @gtauzin
 
 ### Contributors
 
