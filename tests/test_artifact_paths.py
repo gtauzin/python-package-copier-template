@@ -101,12 +101,30 @@ def test_every_reader_of_the_built_site_agrees_with_mkdocs(copie_session_default
         f"noxfile.py composes {root.group(1)}/{leaf.group(1)!r}, mkdocs.yml says {site_dir!r}"
     )
 
-    # The justfile composes the path from its own variables rather than repeating
-    # the literal, which is the shape we want -- so ask just what the value resolves
-    # to instead of string-matching a path that deliberately is not spelled out.
-    if shutil.which("just") is None:
-        pytest.skip("just is not installed; cannot resolve the justfile's site_dir")
+    # The justfile also composes rather than repeating the literal, so it is resolved
+    # from its own variable assignments.
+    #
+    # Deliberately NOT `just --evaluate`, which was the first implementation. `just` is
+    # not installed on the CI runners, so that version skipped there -- and a skip is
+    # invisible: the justfile is one of the readers this test exists to police, and the
+    # only run that mattered was silently not checking it.
+    assert _justfile_site_dir(project_dir) == site_dir, (
+        f"justfile resolves site_dir to {_justfile_site_dir(project_dir)!r}, mkdocs.yml says {site_dir!r}"
+    )
 
+
+def test_the_justfile_resolver_matches_just_itself(copie_session_default):
+    """The hand-rolled justfile resolver must agree with `just`.
+
+    Parsing the assignments is what keeps the check above running on a machine with no
+    `just`. This guards the parser against drifting from just's real semantics, and is
+    the one assertion here that may legitimately skip: it adds confidence where `just`
+    exists rather than being the only thing doing the work.
+    """
+    if shutil.which("just") is None:
+        pytest.skip("just is not installed; the resolver is exercised by the test above regardless")
+
+    project_dir = copie_session_default.project_dir
     resolved = subprocess.run(
         ["just", "--evaluate", "site_dir"],
         cwd=project_dir,
@@ -114,11 +132,10 @@ def test_every_reader_of_the_built_site_agrees_with_mkdocs(copie_session_default
         text=True,
         check=False,
     )
-    if resolved.returncode != 0:
-        pytest.skip(f"just could not evaluate site_dir: {resolved.stderr.strip()}")
 
-    assert resolved.stdout.strip() == site_dir, (
-        f"justfile resolves site_dir to {resolved.stdout.strip()!r}, mkdocs.yml says {site_dir!r}"
+    assert resolved.returncode == 0, f"just could not evaluate site_dir: {resolved.stderr.strip()}"
+    assert resolved.stdout.strip() == _justfile_site_dir(project_dir), (
+        f"just resolves site_dir to {resolved.stdout.strip()!r}, the parser says {_justfile_site_dir(project_dir)!r}"
     )
 
 
@@ -222,6 +239,22 @@ def test_artifacts_directory_is_ignored(copie_session_default):
     ignored = _read(project_dir, ".gitignore").splitlines()
 
     assert f"{artifacts_dir}/" in ignored, f"{artifacts_dir}/ is not in .gitignore, so build output would be committed"
+
+
+def _justfile_site_dir(project_dir):
+    """Resolve the justfile's `site_dir`, which is composed from `artifacts_dir`.
+
+    The justfile spells it as two assignments (`artifacts_dir := "..."` and
+    `site_dir := artifacts_dir / "..."`) rather than repeating the literal, which is
+    the shape we want -- so it has to be resolved, not string-matched.
+    """
+    text = _read(project_dir, "justfile")
+
+    root = re.search(r'^artifacts_dir\s*:=\s*"([^"]+)"', text, re.M)
+    leaf = re.search(r'^site_dir\s*:=\s*artifacts_dir\s*/\s*"([^"]+)"', text, re.M)
+    assert root and leaf, "justfile does not derive site_dir from artifacts_dir"
+
+    return f"{root.group(1)}/{leaf.group(1)}"
 
 
 def _hardcoded_relocated_paths(project_dir):
