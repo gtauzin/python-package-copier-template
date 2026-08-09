@@ -28,11 +28,11 @@ would get a silent empty return from it, but none exists yet.
 |---|---|---|
 | **yohou** | True | The reference implementation and the biggest: ~79 notebooks in **7** groups (6 `examples/` subdirs plus top-level `quickstart.py`), 46 companion pages, 6 curated section pages, hand-written See Also bullets, a 35-link how-to index grouped under 8 headings. It **deleted the seed how-tos** (`contribute.md`, `troubleshooting.md`) for 36 curated ones, so any release touching those is inert here. The only repo that `select`s ruff's `D`, so it is the only one that sees a docstring defect in a template-owned file. Its docs are the quality bar — do not "normalise" them without a reason. Local drift measured 2026-07-21: `justfile` carries an `export-notebooks` recipe; `CONTRIBUTING.md` has 2 customised lines; `docs/pages/how-to/contribute.md` **does not exist** (deleted for the curated set, and confirmed NOT resurrected by update since it is not `_skip_if_exists`-listed). **Its curated how-tos correctly document prek** — `uv run prek install -f` (`contributing.md:38`, `installation.md:89`), `uv run prek run --all-files` (`contributing.md:240`), commitizen labelled as a `commit-msg` hook — **fixed in v0.28.4 (PR #110, `842eedc`).** For several rounds this cell claimed they "still document pre-commit" and agents re-flagged it as needing a PR without grepping (the copies-drift trap this file warns about, sprung on this file itself). Verify by content: `grep -rn pre-commit docs/` finds only the `.pre-commit-config.yaml` filename and immutable CHANGELOG history, no stale commands. **Bespoke setup-uv workflows copier does not own:** `examples.yml`, `regenerate-datasets.yml`, `export-notebooks.yml`, `docs-deploy.yml` each run `astral-sh/setup-uv` — a CI-touching release must audit by content (not by the six templated filenames) and hand-pin/annotate them. `docs-deploy.yml` was missing from this cell until the v0.31.1 fan-out found it — **four** bespoke files, not three. The v0.29.6 uv-version-pin fan-out hand-pinned the setup-uv steps; the v0.31.1 Renovate fan-out added a `# renovate:` annotation above each bespoke setup-uv pin AND pinned `examples.yml`'s previously-bare `uv tool install nox` to `==2026.7.11` (a deliberate behavioural change, flagged for review) so the customManager can bump it. |
 | yohou-nixtla | True | 2 notebooks. Its logos were destroyed by a past update and restored from `f166f46`; **never touch `docs/assets/`**. `_base.py` is `_`-prefixed, so `BaseNixtlaForecaster` reached the API only once `_get_root_members` landed (17→18 rows). Answers cap at `max_python_version: 3.13` — scipy ships no cp314 wheel. Known-flagged: inert `environments` key under `[tool.coverage.report]`, `lightning_logs` xdist race, `/en/stable/` 404 (no stable release yet). |
-| yohou-optuna | True | 5 notebooks, all flat. Carries **15 custom skills / 36 files** under `.claude/skills/` that must stay tracked. (`plot_model_comparison_bar` is **yohou's**, not this repo's — an earlier version of this table said otherwise.) |
+| yohou-optuna | True | 5 notebooks, all flat. Carries **16 custom skills / 37 files** under `.claude/skills/` that must stay tracked (this cell said 15/36 until the v0.41.1 round measured it; the extra is `polish-changelog`). (`plot_model_comparison_bar` is **yohou's**, not this repo's — an earlier version of this table said otherwise.) |
 | sklearn-wrap | True | 9 flat notebooks. `--extra config` is needed for **`ty`** and for **notebook execution during export**, but *not* for rendering: `check_docs` passes with pydantic absent because mkdocstrings uses griffe's static analysis. So `build_docs`/`build_steps` fail locally on `examples/yaml_config.py` while CI and RTD stay green — RTD's recipe passes the extra, the nox sessions never got it (`test_docstrings` already does, so the pattern exists locally). Pre-existing, verified identical on the prior tag. An earlier version of this table said the extra was "not for the docs build", full stop; that is wrong for the export leg. `test_docstrings` has **no matrix parametrization** here — a single ubuntu job on 3.11 — so do not go looking for one to preserve. Went RTD-red once from the v0.22.0 gallery bug. |
 | sklearn-optuna | True | 9 flat notebooks. **See Also: 13 sections, 32 entries, 0 unlinked** — that is the whole useful fact. Do *not* re-add a breakdown of where those links point: this cell has carried three mutually contradictory versions (dependency-inventory resolution; 21 external to `docs.python.org`; 21 internal + 9 API + 2 external), each written confidently from a single agent's measurement, and a spot-check of a live page found 3 links all internal. Nothing in a fan-out turns on the answer. Carries `Sampler`/`Storage`, whose only member is `__init__` — filtered out — which makes it the fleet's test case for anything sensitive to *rendered* vs declared members. |
-| **kedro-dagster** | **False** | No notebooks. Largest docstring surface (~126 See Also links). `docstring_options: {warn_unknown_params: false}` is **CI-critical** — flipping it emits 77 griffe warnings and now *fails* the build. Snippets `base_path` must stay `[docs, .]`: it includes repo-root-relative `src/kedro_dagster/templates/*`. `datasets/` re-export layout. Renamed its page to **`troubleshoot.md`**, and keeps a `test-versions` job (with its `needs:`) that copier has deleted before — it lives in **`nightly.yml:54`** (was recorded as :45 for several releases) and a dedicated **`tests-versions.yml`**, *not* in `tests.yml`; an agent grepping `tests.yml` per this file's old phrasing found nothing and briefly thought it had hit that exact loss. Its curated `pages/reference/datasets.md` is the fleet's only multi-object `:::` page, which makes it the sole real test for anything about duplicate ids or per-object section stripping. Its `tests-versions.yml` `astral-sh/setup-uv` step is bespoke (copier does not own it) — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
-| **kedro-azureml-pipeline** | **False** | No notebooks. `warn_unknown_params: false` is CI-critical — measured to the number: flipping it produces exactly **46** griffe warnings and fails `--strict`. Its `inventories` is **the template default** (`docs.python.org` only), *not* a local extension — an earlier version of this table said it kept a local list, and an agent that went looking for one to preserve found nothing. `distributed/` re-export layout. Best index coverage in the fleet. Renamed its page to **`troubleshoot.md`**. `test_versions` matrix runs **10** jobs — 4 on 3.11, 4 on 3.12, 2 on 3.13, because 3.13 omits the `azure-ai-ml<1.20` pair. This cell said **12** for several releases; two independent fan-out agents measured 10 against byte-identical workflows, so the 12 was arithmetic rather than observation. Also: the ambient interpreter is 3.14, where **kedro raises `KedroPythonVersionWarning` on import**, so this package cannot be imported there despite `requires-python` having no upper bound — `check_docs` is pinned to 3.11 and unaffected. Answers cap at `max_python_version: 3.13`, but `requires-python` has **no upper bound** — see the interpreter note in §5. Its `test_versions` matrix lives in a bespoke `tests-versions.yml` with its own `astral-sh/setup-uv` step copier does not own — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
+| **kedro-dagster** | **False** | No notebooks. Largest docstring surface (~126 See Also links). `docstring_options: {warn_unknown_params: false}` emits 77 griffe warnings if flipped, and is recorded here as CI-critical. **The fatal half is unverified**: the equivalent claim for kedro-azureml was re-measured in the v0.41.1 round and proved stale (46 warnings, then exit 0 under zensical 0.0.51). Keep the key either way; do not repeat "fails the build" as fact until someone measures it. Snippets `base_path` must stay `[docs, .]`: it includes repo-root-relative `src/kedro_dagster/templates/*`. `datasets/` re-export layout. Renamed its page to **`troubleshoot.md`**, and keeps a `test-versions` job (with its `needs:`) that copier has deleted before — it lives in **`nightly.yml:54`** (was recorded as :45 for several releases) and a dedicated **`tests-versions.yml`**, *not* in `tests.yml`; an agent grepping `tests.yml` per this file's old phrasing found nothing and briefly thought it had hit that exact loss. Its curated `pages/reference/datasets.md` is the fleet's only multi-object `:::` page, which makes it the sole real test for anything about duplicate ids or per-object section stripping. Its `tests-versions.yml` `astral-sh/setup-uv` step is bespoke (copier does not own it) — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
+| **kedro-azureml-pipeline** | **False** | No notebooks. `warn_unknown_params: false` is worth keeping — flipping it produces exactly **46** griffe warnings. The **46 is confirmed; the "and fails `--strict`" half is stale**: under zensical 0.0.51 the build prints all 46, then `No issues found`, exit 0. So it is noise-critical, not CI-critical. kedro-dagster's identical "77 warnings and now *fails* the build" claim is likely stale the same way and has not been re-measured. Its `inventories` is **the template default** (`docs.python.org` only), *not* a local extension — an earlier version of this table said it kept a local list, and an agent that went looking for one to preserve found nothing. `distributed/` re-export layout. Best index coverage in the fleet. Renamed its page to **`troubleshoot.md`**. `test_versions` matrix runs **10** jobs — 4 on 3.11, 4 on 3.12, 2 on 3.13, because 3.13 omits the `azure-ai-ml<1.20` pair. This cell said **12** for several releases; two independent fan-out agents measured 10 against byte-identical workflows, so the 12 was arithmetic rather than observation. Also: the ambient interpreter is 3.14, where **kedro raises `KedroPythonVersionWarning` on import**, so this package cannot be imported there despite `requires-python` having no upper bound — `check_docs` is pinned to 3.11 and unaffected. Answers cap at `max_python_version: 3.13`, but `requires-python` has **no upper bound** — see the interpreter note in §5. Its `test_versions` matrix lives in a bespoke `tests-versions.yml` with its own `astral-sh/setup-uv` step copier does not own — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
 
 **`include_examples: False` is real and load-bearing.** For those two repos the gallery,
 companion-notebook and `GALLERY:section` machinery is Jinja-gated *out of their
@@ -94,7 +94,18 @@ a template bug: report it, do not accommodate it.
    baseline and every later measurement is against a fiction. Have each agent clone fresh,
    and verify the ref it actually landed on rather than the ref it asked for. The work lives
    on GitHub, not on disk.
-9. **Check where each repo's PR branch actually sits, not where `main` sits.** This fleet
+9. **`git show origin/main:...` in a local clone reads whatever that clone last fetched.**
+   Read the baseline from GitHub, not from a working copy. In the v0.41.1 round I built the
+   whole fan-out table by looping `git show origin/main:.copier-answers.yml` across the seven
+   local clones **without fetching**, and got v0.40.0 for six of them. Every repo was actually
+   on v0.40.1. The briefs then promised a two-release jump, ~20 action-pin conflicts and a new
+   codeql file — none of which existed — and every drift number was measured against the wrong
+   pristine render, inflating all of them. One agent caught it by re-deriving its own baseline,
+   exactly as §2.4 tells them to; the other five were mid-flight and had to be corrected.
+   `gh api "repos/OWNER/REPO/contents/.copier-answers.yml?ref=main"` is authoritative and takes
+   one line per repo. I had already caught this same staleness once in the same session, on one
+   repo, and fixed it there without generalising — which is how it survived to reach five briefs.
+10. **Check where each repo's PR branch actually sits, not where `main` sits.** This fleet
    carries one long-lived `template-update/*` PR per repo whose branch name is frozen at the
    release that created it; the content advances every release while `main` stays behind. The
    branch name is not evidence of its version — read `_commit` from `.copier-answers.yml` on
@@ -168,35 +179,6 @@ earlier release did leave both copies, so **verify which happened** rather than 
   Tier 1. This file claimed that on the strength of a `wc -l` sweep showing all seven repos
   at matching line counts — the exact mistake §2.5 warns about, made while writing the
   warning. yohou differed at an identical line count.
-
-**Old build output stops being ignored.** The `.gitignore` entries for `site/`, `htmlcov/`,
-`coverage.xml`, `.coverage`, `.nox/`, `.pytest_cache/` and `.ruff_cache/` collapse into one
-`.artifacts/`. Whatever a previous build left at the root becomes untracked the moment the
-update lands. Delete it; do not re-add ignore entries. A plain `git add -A` right after the
-update will otherwise commit an entire built site.
-
-**A relocated file arrives as a duplicate, not a move.** `copier update` renders the file at
-its new path and leaves the old one on disk. Nothing reports it: the update exits 0, the new
-file is present, CI is green. For the files v-next moves into `.github/`, the consuming tool
-reads exactly one of the two copies and ignores the other without a word — GitHub reads
-`.github/CODEOWNERS` and never a root `CODEOWNERS`, and the same holds for `SECURITY.md`,
-`CODE_OF_CONDUCT.md`, `CONTRIBUTING.md` and Renovate's config. A repo that keeps both applies
-whichever copy the maintainer is *not* editing.
-
-- Delete each superseded path explicitly with `git rm`; do not expect copier to.
-- **Verify by grep, not by `git status`.** If an unresolved `.gitignore` conflict still lists
-  a path, git omits the file from status entirely — the delivery looks clean while the stale
-  file sits there. This has fired before.
-- **Do NOT assume the five are byte-identical, even though they are Tier 1.** This file said
-  they were, on the strength of a `wc -l` sweep that found all seven repos at 29/4/6 lines --
-  the exact mistake §2.5 warns about two sections up, made while writing the warning. yohou's
-  `CONTRIBUTING.md` carries **2 curated prose edits** at an identical line count. Diff each
-  root copy against the pristine render before deleting it, and carry any local content over
-  to the `.github/` copy first. Deleting blind loses it silently, which is the whole failure
-  mode this entry exists to prevent.
-- yohou's root `CONTRIBUTING.md` also links `docs/pages/how-to/contribute.md`, a page it
-  deleted for its curated `contributing.md`. The link is already broken; fix it to the real
-  page while moving the file rather than transcribing the break into `.github/`.
 
 **Copier destroys local content silently.**
 - It **overwrites binaries every run**, regardless of diff — no conflict, no `.rej`, only a
@@ -308,12 +290,18 @@ checked.
   everywhere anyone looked**. Check these by fetching the rendered links yourself.
 - An unresolved marker renders as blank space; `--strict` never validated it. `check_docs`
   (v0.21.2) makes marker warnings fatal — that job is the only reason any of this is caught.
-  **In CI. On this host it catches nothing:** `zensical build -s` finishes in ~0.1s, writes
-  an **empty `site/`**, and exits 0 — so `nox -s check_docs` returns "0 warnings" *with a
-  deliberately broken link injected*. Root cause is inotify-instance exhaustion (128 limit,
-  ~116 in use by editors and watchers), recorded in the Zensical notes; `--clean` does not
-  help. **Every one of the seven v0.40.1 agents reproduced this**, and each one initially
-  had a green local `check_docs` in hand before falsifying it.
+  **In CI. On this host it SOMETIMES catches nothing:** `zensical build -s` finishes in ~0.1s,
+  writes an **empty `site/`**, and exits 0 — so `nox -s check_docs` returns "0 warnings" *with
+  a deliberately broken link injected*. Root cause is inotify-instance exhaustion (128 limit),
+  recorded in the Zensical notes; `--clean` does not help.
+  **It is intermittent, not universal.** This entry said "on this host it catches nothing" and
+  "every one of the seven v0.40.1 agents reproduced this", which was true of that round and
+  wrong as a general claim. In the v0.41.1 round three agents measured it independently: one
+  reproduced the vacuous pass, two got real builds (14.8s/39 pages, and 27.3s/98 pages) with
+  inotify **over** the limit at the time. So exhaustion is not sufficient, and a real-looking
+  build is not proof the host is healthy either.
+  The consequence is unchanged and is the only part to rely on: **never accept "0 warnings" on
+  its own**, because the failure and the success are indistinguishable without a count.
   So: a local `check_docs` pass is not evidence. Three things are —
   (a) assert the build emitted a **non-zero page count**, not just zero warnings;
   (b) re-run in a clean container (`python:3.13-slim` / `uv:python3.13-bookworm-slim`),
@@ -529,16 +517,28 @@ multi-line `title=` attributes and the split cuts inside the tag, silently dropp
 **zero** of them anywhere in a built site: the `admonition.html.jinja` override emits
 `<div class="doc-section-item doc-admonition-see-also">` instead, and the See Also
 cross-refs are now linked by the `_see_also.py` Griffe extension. Zero hits reads as a
-clean pass and is total blindness. The stable anchor is a
-heading with `id="see-also"`.
+clean pass and is total blindness.
+
+**And `id="see-also"` is not the stable anchor either — this file said it was, and it
+fails in the same silent direction.** Keyed on that heading alone, an agent measured a
+confident 9 sections / 23 entries / 0 unlinked on sklearn-optuna and read it as a clean
+pass. It finds only the *curated-page* form. Generated API pages render See Also as
+`<div class="doc-admonition-see-also">` with no `id="see-also"` anywhere: 4 more sections
+and 9 more entries, invisible. Counting both shapes gives 13 / 32 / 0, which is the
+recorded baseline. Two agents hit this independently in one round -- the second on
+kedro-dagster's `pages/reference/datasets.md`, where an id-keyed count reads zero.
 
 This line has been wrong in both directions across three releases: first "no container
 survives" stated unconditionally (false — curated pages kept theirs); then "three shapes,
 one of them `details.see-also`" (true when written, falsified by v0.28.0 changing the
 markup out from under it). kedro-dagster's curated `pages/reference/datasets.md` was the
 example cited for the surviving container and is now the example of the new `div` form.
-**Do not encode the current markup here again.** Discover it: find the `id="see-also"`
-headings, then read whatever container follows, whatever it is.
+**Do not encode the current markup here again, and do not key on one anchor.** Discover
+every shape: the two that exist today are an `id="see-also"` heading on curated pages and a
+`doc-admonition-see-also` div on generated API pages, and a counter that knows only one of
+them reports a clean pass over the half it cannot see. This is the same instruction the
+paragraph below already gives -- write the audit shape-agnostic and abort on zero -- which
+the deleted "stable anchor" sentence had been quietly contradicting.
 
 The shapes still differ in ways a single-shape counter gets wrong — `<ul><li>` lists,
 bare `<p>` for single-entry sections, and a wrapping `div` — so a naive counter collapses
