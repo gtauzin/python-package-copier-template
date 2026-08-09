@@ -163,6 +163,10 @@ line-length = 120
 target-version = "py{{ min_python_version.replace('.', '') }}"
 src = ["src", "tests"]
 show-fixes = true
+# Every tool that writes throwaway output writes it under `.artifacts/` rather
+# than dropping a directory at the repo root. See the same key in the pytest and
+# coverage sections, `envdir` in the noxfile, and `site_dir` in mkdocs.yml.
+cache-dir = ".artifacts/ruff"
 exclude = ["src/{{ package_name }}/_version.py"{% if include_examples %}, "examples/"{% endif %}]
 
 [tool.ruff.format]
@@ -236,6 +240,7 @@ omit-covered-files = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+cache_dir = ".artifacts/pytest"
 addopts = [
     "--strict-markers",
     "--strict-config",
@@ -256,6 +261,10 @@ source = ["src/{{ package_name }}"]
 
 [tool.coverage.run]
 source = ["{{ package_name }}"]
+# `parallel = true` writes `<data_file>.<host>.<pid>.<random>` siblings, so this
+# keeps the whole family under `.artifacts/` rather than scattering `.coverage.*`
+# across the repo root.
+data_file = ".artifacts/.coverage"
 branch = true
 parallel = true
 sigterm = true
@@ -275,6 +284,15 @@ fail_under = 1
 include_namespace_packages = true
 
 [tool.coverage.html]
+directory = ".artifacts/htmlcov"
+
+[tool.coverage.xml]
+# The ONLY place the coverage XML path is written. `addopts` carries a bare
+# `--cov-report=xml`, which defers to this key; an explicit `--cov-report=xml:PATH`
+# on a command line would override it instead, which is how the CI upload path and
+# the produced filename silently drifted apart before. Nothing else names this file
+# except the Codecov upload step, and a test asserts the two agree.
+output = ".artifacts/coverage.xml"
 
 [tool.rumdl]
 flavor = "mkdocs"
@@ -291,7 +309,7 @@ disable = [
     "MD046",  # Code block style (indented blocks required inside MkDocs tabs)
     "MD051",  # Link fragments (cross-doc references resolved at MkDocs build time)
 ]
-exclude = ["CHANGELOG.md", "site", "htmlcov", ".nox", ".venv", "openspec"]
+exclude = ["CHANGELOG.md", ".artifacts", ".venv", "openspec"]
 
 [tool.rumdl.per-file-ignores]
 ".claude/skills/**" = ["MD007"]  # Nested lists in skill files use variable indent
@@ -304,7 +322,7 @@ exclude = ["CHANGELOG.md", "site", "htmlcov", ".nox", ".venv", "openspec"]
 # page that most needs one.
 "docs/pages/reference/changelog.md" = ["MD041"]
 "docs/index.md" = ["MD041", "MD026"]  # + welcome H1 intentionally ends with "!"
-"CONTRIBUTING.md" = ["MD057"]  # Relative link to docs/ is valid at project level
+".github/CONTRIBUTING.md" = ["MD057"]  # Relative link up to docs/ is valid at project level
 {% if include_actions %}
 
 [tool.commitizen]

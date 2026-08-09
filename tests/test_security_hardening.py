@@ -150,11 +150,20 @@ def test_gitleaks_hook_and_gating_ci_job(copie):
 
 
 def test_governance_files_ship_for_every_repo(copie):
-    """SECURITY.md and CODEOWNERS ship regardless of visibility."""
+    """SECURITY.md and CODEOWNERS ship regardless of visibility.
+
+    Both live under `.github/`, where GitHub reads them with the same effect as
+    from the root: the Security tab reads `.github/SECURITY.md` and code-owner
+    review assignment reads `.github/CODEOWNERS`. Where both a root and a
+    `.github/` copy exist GitHub reads only the latter, so the root copy must be
+    absent rather than merely stale.
+    """
     for answers in ({}, {"repo_visibility": "private", "include_codecov": False}):
         result = copie.copy(extra_answers=answers)
-        assert (result.project_dir / "SECURITY.md").exists()
-        assert (result.project_dir / "CODEOWNERS").exists()
+        assert (result.project_dir / ".github" / "SECURITY.md").exists()
+        assert (result.project_dir / ".github" / "CODEOWNERS").exists()
+        assert not (result.project_dir / "SECURITY.md").exists()
+        assert not (result.project_dir / "CODEOWNERS").exists()
 
 
 def test_publish_flow_is_self_contained_with_sbom(copie):
@@ -293,7 +302,7 @@ def test_security_page_gates_public_only_controls(copie):
 def test_codeowners_uses_a_valid_owner(copie):
     """CODEOWNERS ships a concrete owner, not a bare org name GitHub rejects."""
     result = copie.copy()
-    codeowners = _read(result.project_dir, "CODEOWNERS")
+    codeowners = _read(result.project_dir, ".github/CODEOWNERS")
     owner_line = next(line for line in codeowners.splitlines() if line.startswith("*"))
     owner = owner_line.split()[1]
     assert owner.startswith("@"), "code owner should be an @user or @org/team"

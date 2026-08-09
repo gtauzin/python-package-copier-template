@@ -292,7 +292,11 @@ def test_a_matched_claim_is_true_not_merely_asserted():
     string in a YAML file that nothing compared against reality. That is precisely the
     defect this capability exists to eliminate, reproduced inside its own mechanism.
     """
+    # Both levels the derivation reads, keyed the same way: bare name at the root,
+    # `.github/`-prefixed under it. A root-only set here would fail every governance
+    # file the moment it moved into `.github/`, which is where they all live now.
     repo_files = {p.name for p in _REPO.iterdir()}
+    repo_files |= {f".github/{p.name}" for p in (_REPO / ".github").iterdir() if p.is_file()}
     unsupported = unsupported_matched_claims(
         _manifest()["file_gates"], repo_files, _repo_hook_ids(), _repo_workflow_jobs()
     )

@@ -138,6 +138,26 @@ Group a section index under `##` headings only when it is big enough to need it 
 
 ## 4. The hazards, all of which have fired
 
+**Old build output stops being ignored.** The `.gitignore` entries for `site/`, `htmlcov/`,
+`coverage.xml`, `.coverage`, `.nox/`, `.pytest_cache/` and `.ruff_cache/` collapse into one
+`.artifacts/`. Whatever a previous build left at the root becomes untracked the moment the
+update lands. Delete it; do not re-add ignore entries. A plain `git add -A` right after the
+update will otherwise commit an entire built site.
+
+**A relocated file arrives as a duplicate, not a move.** `copier update` renders the file at
+its new path and leaves the old one on disk. Nothing reports it: the update exits 0, the new
+file is present, CI is green. For the files v-next moves into `.github/`, the consuming tool
+reads exactly one of the two copies and ignores the other without a word — GitHub reads
+`.github/CODEOWNERS` and never a root `CODEOWNERS`, and the same holds for `SECURITY.md`,
+`CODE_OF_CONDUCT.md`, `CONTRIBUTING.md` and Renovate's config. A repo that keeps both applies
+whichever copy the maintainer is *not* editing.
+
+- Delete each superseded path explicitly with `git rm`; do not expect copier to.
+- **Verify by grep, not by `git status`.** If an unresolved `.gitignore` conflict still lists
+  a path, git omits the file from status entirely — the delivery looks clean while the stale
+  file sits there. This has fired before.
+- All five are Tier 1 and byte-identical across the fleet, so nothing local is lost.
+
 **Copier destroys local content silently.**
 - It **overwrites binaries every run**, regardless of diff — no conflict, no `.rej`, only a
   `Bin NNNN -> NNNN` line. This ate project logos for months. Only `_skip_if_exists`

@@ -2,10 +2,14 @@ site_name: Python Package Copier
 site_description: A modern Python package template based on copier using uv, ruff, ty, pytest, mkdocs, and nox
 site_author: GitHub Contributors
 site_url: https://python-package-copier.readthedocs.io/
+# Throwaway build output goes under `.artifacts/` instead of dropping a `site/`
+# at the repo root. Must stay `.artifacts/site` and never `.artifacts` itself:
+# the build empties site_dir first, so the parent would take the caches with it.
+site_dir: .artifacts/site
 repo_url: https://github.com/stateful-y/python-package-copier
 edit_uri: edit/main/docs/
 
-# The theme override moved out of docs_dir to docs_theme/, so no build tooling
+# The theme override moved out of docs_dir to docs_build/, so no build tooling
 # lives under docs/ and there is nothing for exclude_docs to suppress. The
 # successor engine (Zensical) ignores exclude_docs anyway, so location -- not a
 # config key -- is what keeps the override unpublished, under either engine.
@@ -16,7 +20,7 @@ theme:
   # stylesheets/theme.css was written for. MkDocs ignores this key; Zensical
   # reads it. Without it the published site silently changes appearance.
   variant: classic
-  custom_dir: docs_theme/overrides
+  custom_dir: docs_build/overrides
   favicon: assets/favicon.png
   logo: assets/logo.png
 

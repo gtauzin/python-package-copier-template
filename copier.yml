@@ -10,8 +10,11 @@ _exclude:
   - "*.pyc"
   - ".DS_Store"
   - ".venv"
+  # Throwaway output is configured into `.artifacts/` now. `.pytest_cache` stays
+  # listed because this guard is against a stray directory appearing under
+  # `template/`, which a tool run outside the project's own config can still create.
+  - ".artifacts"
   - ".pytest_cache"
-  - "htmlcov"
   - "*.egg-info"
 
 # A project's identity. Shipped once, so a new project has something to render,

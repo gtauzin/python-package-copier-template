@@ -61,17 +61,38 @@ def test_repo_docs_have_no_engine_hooks_or_in_source_build_tooling():
     assert not stray, f"build-tooling .py under docs/ would be published as a static asset: {stray}"
 
 
+def test_repo_has_no_build_tooling_under_docs_dir():
+    """The same location invariant the template enforces, applied to this repo's docs.
+
+    `tests/test_artifact_paths.py` asserts this over a generated project. Nothing
+    asserted it over the docs this repository publishes about itself, which is the
+    exact gap this repo keeps rediscovering: a property enforced downstream and quietly
+    absent upstream. This repo's only build tooling is a theme override, and it lives
+    in `docs_build/` for the same reason -- the successor engine ignores `exclude_docs`,
+    so position in the tree is the only control.
+    """
+    docs_dir = _REPO / _repo_mkdocs_config().get("docs_dir", "docs")
+
+    leaked = sorted(
+        path.relative_to(_REPO).as_posix()
+        for path in docs_dir.rglob("*")
+        if path.is_file() and (path.suffix == ".jinja" or "overrides" in path.relative_to(docs_dir).parts)
+    )
+
+    assert not leaked, f"build tooling sits under docs_dir and would be published: {leaked}"
+
+
 def test_repo_docs_theme_override_is_excluded_by_location():
     """The theme override is kept out of the built site by living outside docs_dir.
 
-    `main.html` moved from `docs/material/overrides/` to `docs_theme/overrides/`,
+    `main.html` moved from `docs/material/overrides/` to `docs_build/overrides/`,
     a sibling of `docs/`. The successor engine ignores `exclude_docs`, so location
     -- not that key -- is what keeps the override unpublished, under either engine.
     """
     assert not (_REPO / "docs" / "material").exists(), "the theme override still sits under docs_dir"
-    assert (_REPO / "docs_theme" / "overrides" / "main.html").is_file(), "the relocated override is missing"
+    assert (_REPO / "docs_build" / "overrides" / "main.html").is_file(), "the relocated override is missing"
     config = _repo_mkdocs_config()
-    assert config.get("theme", {}).get("custom_dir") == "docs_theme/overrides"
+    assert config.get("theme", {}).get("custom_dir") == "docs_build/overrides"
     assert "exclude_docs" not in config, "no exclude_docs is needed once the override is outside docs_dir"
 
 
@@ -125,7 +146,7 @@ def test_repo_docs_build_ships_content_not_an_empty_site(tmp_path):
 
     Built with the *publishing* engine. Zensical has no `--site-dir`, so instead of
     redirecting the output the sources are copied into a scratch tree and built there:
-    that keeps the repo's own `site/` untouched and stops parallel workers racing over
+    that keeps the repo's own built site untouched and stops parallel workers racing over
     one output directory. Only the inputs a build needs are copied, so the copy is
     cheap and a stray file in the repo cannot influence the result.
     """
@@ -135,7 +156,7 @@ def test_repo_docs_build_ships_content_not_an_empty_site(tmp_path):
     engine = _publishing_engine()
     work = tmp_path / "docs-build"
     work.mkdir()
-    for item in ("docs", "docs_theme", "mkdocs.yml", "pyproject.toml", "uv.lock"):
+    for item in ("docs", "docs_build", "mkdocs.yml", "pyproject.toml", "uv.lock"):
         source = _REPO / item
         if source.is_dir():
             shutil.copytree(source, work / item)
@@ -151,7 +172,7 @@ def test_repo_docs_build_ships_content_not_an_empty_site(tmp_path):
     )
     assert build.returncode == 0, build.stderr[-2000:]
 
-    site = work / "site"
+    site = work / ".artifacts" / "site"
     assert site.is_dir(), f"{engine} produced no site directory at all"
 
     index = site / "index.html"

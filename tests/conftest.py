@@ -56,6 +56,24 @@ class CopierTestFixture:
         return CopierResult(project_dir=project_dir, result=result)
 
 
+def _snapshot_shipped_files(project_dir: Path) -> list[str]:
+    """Files the template rendered, at the project root and the top of `.github/`.
+
+    Paths are relative to the project, so a `.github/` entry is distinguishable from
+    a root one of the same name.
+    """
+    if not project_dir.exists():
+        return []
+
+    files = [path.name for path in project_dir.iterdir() if path.is_file()]
+
+    github = project_dir / ".github"
+    if github.is_dir():
+        files += [f".github/{path.name}" for path in github.iterdir() if path.is_file()]
+
+    return sorted(files)
+
+
 class CopierResult:
     """Result of a copier template copy operation."""
 
@@ -73,9 +91,16 @@ class CopierResult:
         # template output -- which made the parity gate demand manifest entries for them
         # whenever it happened to run after the polluting test. Snapshotting at
         # generation time makes the measured set the rendered set, whatever runs after.
-        self.rendered_root_files = (
-            sorted(path.name for path in project_dir.iterdir() if path.is_file()) if project_dir.exists() else []
-        )
+        #
+        # `.github/` is included alongside the root, and not as a convenience. The
+        # governance files this derivation exists to see -- CODEOWNERS, SECURITY.md,
+        # CODE_OF_CONDUCT.md, CONTRIBUTING.md -- live there now. A root-only snapshot
+        # would stop deriving them the moment they moved, silently restoring the blind
+        # spot that made this derivation necessary: the manifest would report full
+        # parity while nothing measured the controls at all. Only the top level is
+        # taken; `workflows/`, `skills/` and `codeql/` are covered by other gate shapes
+        # or are not controls.
+        self.rendered_root_files = _snapshot_shipped_files(project_dir)
 
 
 @pytest.fixture(scope="session", autouse=True)

@@ -1,5 +1,11 @@
 # justfile for python-package-copier
 
+# Throwaway build output lives under one directory instead of scattering across
+# the repo root. `site_dir` must agree with `site_dir` in mkdocs.yml, which is what
+# actually decides where the site is written; these recipes only read it.
+artifacts_dir := ".artifacts"
+site_dir := artifacts_dir / "site"
+
 # List available commands
 default:
     @just --list
@@ -37,7 +43,7 @@ fix:
 
 # Check built docs for dead links (build first with 'just build')
 link:
-    uvx linkchecker site/index.html --no-status --no-warnings --ignore-url 'material/overrides'
+    uvx linkchecker {{ site_dir }}/index.html --no-status --no-warnings --ignore-url 'material/overrides'
 
 # Build documentation
 build:
@@ -50,10 +56,9 @@ serve:
 
 # Clean build artifacts
 clean:
-    rm -rf .nox
+    rm -rf {{ artifacts_dir }}
     rm -rf build dist *.egg-info
-    rm -rf .pytest_cache .ty_cache .ruff_cache
-    rm -rf site
+    rm -rf .ty_cache .rumdl_cache
     find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
     find . -type d -name "*.egg-info" -exec rm -rf {} + 2>/dev/null || true
     find . -type f -name "*.pyc" -delete

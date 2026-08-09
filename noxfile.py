@@ -1,5 +1,7 @@
 """Nox sessions for the python-package-copier."""
 
+from pathlib import Path
+
 import nox
 
 # Require Nox version 2024.3.2 or newer to support the 'default_venv_backend' option
@@ -7,6 +9,14 @@ nox.needs_version = ">=2024.3.2"
 
 # Set 'uv' as the default backend for creating virtual environments
 nox.options.default_venv_backend = "uv|virtualenv"
+
+# Keep the session virtualenvs under `.artifacts/` with every other piece of
+# throwaway output, instead of dropping a `.nox/` at the repo root.
+nox.options.envdir = ".artifacts/nox"
+
+# The single definition of where build output goes; readers derive from it.
+ARTIFACTS_DIR = Path(".artifacts")
+SITE_DIR = ARTIFACTS_DIR / "site"
 
 # Default sessions to run when nox is called without arguments
 nox.options.sessions = ["fix", "test_fast", "serve_docs"]
@@ -139,11 +149,10 @@ def lint(session: nox.Session) -> None:
 @nox.session(venv_backend="uv")
 def link_docs(session: nox.Session) -> None:
     """Check the built documentation for dead links."""
-    from pathlib import Path
 
-    site_dir = Path("site")
+    site_dir = SITE_DIR
     if not site_dir.exists():
-        session.error("site/ directory not found. Run 'just build' or 'nox -s build_docs' first.")
+        session.error(f"{site_dir}/ not found. Run 'just build' or 'nox -s build_docs' first.")
 
     session.run(
         "uvx",

@@ -19,11 +19,12 @@ import re
 import subprocess
 
 import pytest
+from _build_layout import OVERRIDES_DIR, TEMPLATES_DIR, site_path
 
 
 @pytest.fixture(scope="module")
 def built_site(session_projects_dir, request):
-    """Render a project and build its docs once, returning the ``site/`` dir.
+    """Render a project and build its docs once, returning the built-site dir.
 
     ``include_examples=False`` keeps the build fast (no notebook execution) while
     still exercising the API index, the section-index subpages, the mkdocstrings
@@ -65,19 +66,19 @@ def built_site(session_projects_dir, request):
             check=False,
         )
         assert build.returncode == 0, f"build_docs failed:\n{build.stdout}\n{build.stderr}"
-    return project_dir / "site"
+    return site_path(project_dir)
 
 
 def test_mkdocs_config_points_at_the_relocated_theme(copie_session_default):
-    """The config references ``docs_theme/`` and drops the tooling exclusions (task 7.3).
+    """The config references ``docs_build/`` and drops the tooling exclusions (task 7.3).
 
     A fast, build-free check: ``custom_dir``/``custom_templates`` must point at the
     relocated theme directory, and the old build-tooling ``exclude_docs`` entries
     (which the successor engine ignores anyway) must be gone.
     """
     content = (copie_session_default.project_dir / "mkdocs.yml").read_text(encoding="utf-8")
-    assert "custom_dir: docs_theme/overrides" in content
-    assert "custom_templates: docs_theme/templates" in content
+    assert f"custom_dir: {OVERRIDES_DIR}" in content
+    assert f"custom_templates: {TEMPLATES_DIR}" in content
     assert "docs/material" not in content, "config still references the pre-relocation theme path"
     assert "material/overrides/*.html" not in content, "the tooling exclude_docs entry should be gone"
     # Zensical defaults to its "modern" theme variant; "classic" is the one that
@@ -130,7 +131,7 @@ def test_no_page_context_marker_survives_unresolved(built_site):
 def test_build_tooling_does_not_leak_into_the_site(built_site):
     """The theme overrides, mkdocstrings templates and scaffold stay unpublished (task 7.2).
 
-    They live outside ``docs_dir`` (``docs_theme/`` and ``docs_build/``), so no
+    They live outside ``docs_dir`` (all of it under ``docs_build/``), so no
     engine can publish them -- the successor ignores ``exclude_docs``, so this is
     enforced by location, not configuration.
     """
@@ -138,7 +139,7 @@ def test_build_tooling_does_not_leak_into_the_site(built_site):
         p.relative_to(built_site).as_posix()
         for p in built_site.rglob("*")
         if p.is_file()
-        and ("material" in p.parts or "docs_theme" in p.parts or p.suffix == ".jinja" or p.name == "api-submodule.html")
+        and ("material" in p.parts or "overrides" in p.parts or p.suffix == ".jinja" or p.name == "api-submodule.html")
     ]
     assert not leaked, f"build tooling leaked into the built site: {leaked}"
 
