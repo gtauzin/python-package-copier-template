@@ -291,12 +291,18 @@ checked.
   everywhere anyone looked**. Check these by fetching the rendered links yourself.
 - An unresolved marker renders as blank space; `--strict` never validated it. `check_docs`
   (v0.21.2) makes marker warnings fatal — that job is the only reason any of this is caught.
-  **In CI. On this host it catches nothing:** `zensical build -s` finishes in ~0.1s, writes
-  an **empty `site/`**, and exits 0 — so `nox -s check_docs` returns "0 warnings" *with a
-  deliberately broken link injected*. Root cause is inotify-instance exhaustion (128 limit,
-  ~116 in use by editors and watchers), recorded in the Zensical notes; `--clean` does not
-  help. **Every one of the seven v0.40.1 agents reproduced this**, and each one initially
-  had a green local `check_docs` in hand before falsifying it.
+  **In CI. On this host it SOMETIMES catches nothing:** `zensical build -s` finishes in ~0.1s,
+  writes an **empty `site/`**, and exits 0 — so `nox -s check_docs` returns "0 warnings" *with
+  a deliberately broken link injected*. Root cause is inotify-instance exhaustion (128 limit),
+  recorded in the Zensical notes; `--clean` does not help.
+  **It is intermittent, not universal.** This entry said "on this host it catches nothing" and
+  "every one of the seven v0.40.1 agents reproduced this", which was true of that round and
+  wrong as a general claim. In the v0.41.1 round three agents measured it independently: one
+  reproduced the vacuous pass, two got real builds (14.8s/39 pages, and 27.3s/98 pages) with
+  inotify **over** the limit at the time. So exhaustion is not sufficient, and a real-looking
+  build is not proof the host is healthy either.
+  The consequence is unchanged and is the only part to rely on: **never accept "0 warnings" on
+  its own**, because the failure and the success are indistinguishable without a count.
   So: a local `check_docs` pass is not evidence. Three things are —
   (a) assert the build emitted a **non-zero page count**, not just zero warnings;
   (b) re-run in a clean container (`python:3.13-slim` / `uv:python3.13-bookworm-slim`),
