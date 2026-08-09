@@ -614,6 +614,16 @@ it when the repo would otherwise block on something unrelated.
 - **Never `git stash` to park work.** `git stash --keep-index && git stash drop` destroyed a
   set of edits in this repo — the drop is unrecoverable and there is no confirmation. Commit
   to a scratch branch, or copy files aside.
+- **Title the PR after the CHANGE, never after the mechanism.** "chore: update from
+  template v0.41.1" tells a reviewer nothing about what is landing in their repo, and it
+  is what every one of these PRs was called for years. Say what actually changes there:
+  "refactor(layout): move build output to .artifacts/ and CODEOWNERS to .github/". Two
+  reasons it is not cosmetic. A reviewer decides whether to read the diff from the title
+  alone, and on a fan-out the diff is large and mostly mechanical. And **the title reaches
+  the downstream changelog**: GitHub takes the squash title from the PR title on any
+  multi-commit PR, so a repo whose release notes say "update from template" has lost the
+  only record of what the release did to it. Update the title when you fold a later
+  release into an open PR, for the same reason.
 - **Push to the existing branch; do not open a second PR.** These are long-lived
   `template-update/*` PRs that advance across releases.
 - **Open the PR ready-for-review, never draft.** "Held for review" means *do-not-merge*,
