@@ -12,7 +12,7 @@ This **patch release** includes 1 commit.
 
 
 ### Bug Fixes
-- Ship the path gate, and keep the reader-facing files at the root  ([#281](https://github.com/stateful-y/python-package-copier/pull/281)) by @gtauzin
+- Ship the artifact-path check to projects and keep contributor docs at the root  ([#281](https://github.com/stateful-y/python-package-copier/pull/281)) by @gtauzin
 
 ### Contributors
 
