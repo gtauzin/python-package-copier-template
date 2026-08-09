@@ -21,8 +21,6 @@ import re
 import subprocess
 from pathlib import Path
 
-import yaml
-
 _PROJECT = Path(__file__).resolve().parent.parent
 
 # Paths that used to sit at the repository root. Nothing may name one outside the
@@ -73,21 +71,21 @@ def _tracked_files():
     ]
 
 
-def _mkdocs_config():
-    """Load mkdocs.yml, tolerating the custom YAML tags the config uses."""
-
-    class _Loader(yaml.SafeLoader):
-        pass
-
-    _Loader.add_multi_constructor("tag:yaml.org,2002:python/name:", lambda _loader, suffix, _node: suffix)
-    _Loader.add_constructor("!ENV", lambda _loader, _node: None)
-    # S506 flags yaml.load with a non-safe loader. `_Loader` IS a SafeLoader subclass;
-    # it only teaches the two tags this config uses, so it constructs nothing arbitrary.
-    return yaml.load((_PROJECT / "mkdocs.yml").read_text(encoding="utf-8"), Loader=_Loader)  # noqa: S506
-
-
 def _site_dir():
-    return _mkdocs_config()["site_dir"]
+    """Return the `site_dir` mkdocs.yml configures.
+
+    Read with a regex rather than a YAML parser on purpose. PyYAML belongs to the
+    docs dependency group, while this suite runs under the tests group -- importing
+    it here fails the whole run with `ModuleNotFoundError` in the session that
+    matters, which is how this first reached CI. Adding PyYAML to the tests group to
+    read one top-level scalar is the worse trade. `site_dir` is a plain unquoted key
+    the template owns, so this is an exact match, not a general YAML parse.
+    """
+    text = (_PROJECT / "mkdocs.yml").read_text(encoding="utf-8")
+    match = re.search(r"^site_dir:\s*(\S+)\s*$", text, re.M)
+
+    assert match, "mkdocs.yml does not set `site_dir`, so nothing defines where the build writes"
+    return match.group(1).strip("\"'")
 
 
 # `site/` with its slash catches the common form, but not `tar -C site .` or a bare
