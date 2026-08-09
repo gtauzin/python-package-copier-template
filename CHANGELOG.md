@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.41.2] - 2026-08-09
+
+This **patch release** includes 3 commits.
+
+
+### Bug Fixes
+- Stop the shipped path gate failing a project that reads no site  ([#285](https://github.com/stateful-y/python-package-copier/pull/285)) by @gtauzin
+
+### Documentation
+- Title a fan-out PR after the change, not the mechanism  ([#282](https://github.com/stateful-y/python-package-copier/pull/282)) by @gtauzin
+- Remove a retracted hazard, and record the stale-baseline trap  ([#284](https://github.com/stateful-y/python-package-copier/pull/284)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.41.1] - 2026-08-09
 
 This **patch release** includes 1 commit.
