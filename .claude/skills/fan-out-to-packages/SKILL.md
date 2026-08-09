@@ -355,9 +355,14 @@ checked.
 - **`gh pr checks` also exits NON-ZERO while checks are still pending.** A poll loop that
   guards on exit status breaks out immediately and reports the partial state as final; mine
   did, on this release. Guard on the *output* (`grep -q pending`), not the exit code.
-- **`Validate Commit Message` skips on a multi-commit PR** — it carries
-  `if: github.event.pull_request.commits == 1`. Folding a second release into an open PR
-  flips it from pass to skip, which is correct, not a regression: with two commits GitHub
+- **`Validate Commit Message` does NOT skip on a multi-commit PR — it PASSES vacuously.**
+  The `if: github.event.pull_request.commits == 1` is at **step** level, not job level, so
+  the job reports `success` with all its real steps skipped. In `gh pr checks` that is
+  indistinguishable from a real pass, and an agent watching for `skipping` to confirm the
+  handoff will never see it. Verified on yohou #142 after folding a second release in.
+  This entry said "flips from pass to skip, which is correct" — a green tick over an empty
+  set, recorded as benign, which is this fleet's dominant failure shape. The substantive
+  point is unchanged: with two commits GitHub
   takes the squash title from the **PR title**, which `pr-title.yml` validates instead.
   **This makes the PR title load-bearing for the changelog** — update it when you fold.
 - **RTD 403s urllib's user-agent** — use `curl`. And in **yohou**, a green RTD preview is
