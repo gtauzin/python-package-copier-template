@@ -129,37 +129,36 @@ def test_no_file_names_a_relocated_path_by_hand(copie_session_default):
     the justfile's `linkchecker site/index.html`. Both were found by reading, which
     is exactly the method that missed four more of them in a single workflow step.
     """
-    project_dir = copie_session_default.project_dir
-    offenders = []
+    offenders = _hardcoded_relocated_paths(copie_session_default.project_dir)
 
-    for path in project_dir.rglob("*"):
-        if not path.is_file() or ".git" in path.parts:
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
-            continue
-        relative = path.relative_to(project_dir)
-        for name in _RELOCATED:
-            # An entry ending in `/` is already delimited by the slash, and what
-            # follows it is the rest of the path. Applying the word-boundary guard
-            # there would reject every real use (`site/index.html`) and match none.
-            trailing = "" if name.endswith("/") else r"(?![\w-])"
-            for match in re.finditer(rf"(?<![\w./-]){re.escape(name)}{trailing}", text):
-                line = text[: match.start()].rsplit("\n", 1)[-1] + text[match.start() :].split("\n", 1)[0]
-                # A comment explaining the layout may name any of these freely.
-                if line.lstrip().startswith("#"):
-                    continue
-                # The point is not that the basename never appears -- it has to
-                # appear where the path is defined. What must never appear is a
-                # basename used as a path with no tie to the artifacts directory,
-                # whether spelled literally or reached through the one constant
-                # each format uses for it.
-                if any(anchor in line for anchor in _ARTIFACT_ANCHORS):
-                    continue
-                offenders.append(f"{relative}: {line.strip()}")
+    assert not offenders, "relocated paths still named by hand:\n" + "\n".join(offenders)
 
-    assert not offenders, "relocated paths still named by hand:\n" + "\n".join(sorted(set(offenders)))
+
+def test_the_hardcoded_path_scan_can_fail(copie_session_default, tmp_path):
+    """The scan must actually catch a path someone spells out again.
+
+    Its first version did not. `site/` was missing from the relocated list, and the
+    word-boundary guard rejected the entry once it was added, so a deliberately
+    reintroduced `linkchecker site/index.html` sailed through a green run. Both are
+    fixed -- and the fix is worth nothing unless something keeps exercising the
+    failure path, which is the whole argument this change is built on.
+    """
+    project_dir = tmp_path / "regressed"
+    shutil.copytree(copie_session_default.project_dir, project_dir, symlinks=True)
+
+    # Exactly the line that slipped through: a real path, in a real recipe, with no
+    # tie to the artifacts directory.
+    justfile = project_dir / "justfile"
+    justfile.write_text(
+        justfile.read_text(encoding="utf-8") + "\nstale:\n    uvx linkchecker site/index.html\n",
+        encoding="utf-8",
+    )
+
+    offenders = _hardcoded_relocated_paths(project_dir)
+
+    assert any("linkchecker site/index.html" in offender for offender in offenders), (
+        f"the scan missed a hardcoded site path; it reported {offenders}"
+    )
 
 
 def test_coverage_upload_path_is_the_path_coverage_writes(copie_session_default):
@@ -223,6 +222,39 @@ def test_artifacts_directory_is_ignored(copie_session_default):
     ignored = _read(project_dir, ".gitignore").splitlines()
 
     assert f"{artifacts_dir}/" in ignored, f"{artifacts_dir}/ is not in .gitignore, so build output would be committed"
+
+
+def _hardcoded_relocated_paths(project_dir):
+    """Lines that name a relocated path with no tie to the artifacts directory."""
+    offenders = []
+
+    for path in project_dir.rglob("*"):
+        if not path.is_file() or ".git" in path.parts:
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        relative = path.relative_to(project_dir)
+        for name in _RELOCATED:
+            # An entry ending in `/` is already delimited by the slash, and what
+            # follows it is the rest of the path. Applying the word-boundary guard
+            # there would reject every real use (`site/index.html`) and match none.
+            trailing = "" if name.endswith("/") else r"(?![\w-])"
+            for match in re.finditer(rf"(?<![\w./-]){re.escape(name)}{trailing}", text):
+                line = text[: match.start()].rsplit("\n", 1)[-1] + text[match.start() :].split("\n", 1)[0]
+                # A comment explaining the layout may name any of these freely.
+                if line.lstrip().startswith("#"):
+                    continue
+                # The point is not that the basename never appears -- it has to appear
+                # where the path is defined. What must never appear is a basename used
+                # as a path with no tie to the artifacts directory, whether spelled
+                # literally or reached through the one constant each format uses.
+                if any(anchor in line for anchor in _ARTIFACT_ANCHORS):
+                    continue
+                offenders.append(f"{relative}: {line.strip()}")
+
+    return sorted(set(offenders))
 
 
 def _docs_dir(project_dir):
