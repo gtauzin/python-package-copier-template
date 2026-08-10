@@ -184,6 +184,18 @@ earlier release did leave both copies, so **verify which happened** rather than 
 - It **overwrites binaries every run**, regardless of diff — no conflict, no `.rej`, only a
   `Bin NNNN -> NNNN` line. This ate project logos for months. Only `_skip_if_exists`
   stops it; "Tier 3" is a convention for whoever *resolves* an update and is never reached.
+- **The generated `tests/conftest.py` is effectively FROZEN. Any edit to it, including a
+  comment, can rewrite a project's own imports.** Measured in the v0.41.4 pre-flight
+  against real clones: inserting a comment block between the imports and the settings
+  call left `def`/fixture names untouched but **replaced kedro-dagster's entire import
+  header** -- its `# mypy: ignore-errors`, its `from __future__ import annotations`, and
+  all sixteen of its scenario imports -- with the template's five-line stub. The file
+  would not have imported. Reverting the conftest to byte-identical left it `UNCHANGED`
+  in all four repos tested, with no `.rej`.
+  Fleet conftests run 152 to 456 lines against the template's 25, so their import
+  sections have no common ancestry with it and the header hunk rejects wholesale. If the
+  template ever genuinely needs to change this file, pre-flight the update against every
+  repo first and expect to hand-carry it, not diff it.
 - **Moving a block within a template file is a whole-file rewrite, and it destroys
   divergent copies.** Measured in the v0.41.3 round: relocating a 15-line settings block
   from the middle of the template's `tests/conftest.py` to the end -- no content change,
