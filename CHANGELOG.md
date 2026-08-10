@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.41.2] - 2026-08-09
+
+This **patch release** includes 3 commits.
+
+
+### Bug Fixes
+- Fix the artifact-path check failing a project that publishes docs another way  ([#285](https://github.com/stateful-y/python-package-copier/pull/285)) by @gtauzin
+
+### Documentation
+- Describe the change in template-update PR titles instead of the version  ([#282](https://github.com/stateful-y/python-package-copier/pull/282)) by @gtauzin
+- Correct stale claims in the fleet-rollout guide and drop a retracted one  ([#284](https://github.com/stateful-y/python-package-copier/pull/284)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.41.1] - 2026-08-09
 
 This **patch release** includes 1 commit.
