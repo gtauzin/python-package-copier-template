@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.41.4] - 2026-08-10
+
+This **patch release** includes 2 commits.
+
+
+### Bug Fixes
+- Put the Hypothesis block back, it was destroying local fixtures  ([#290](https://github.com/stateful-y/python-package-copier/pull/290)) by @gtauzin
+- Leave the generated conftest byte-identical, it is effectively frozen  ([#291](https://github.com/stateful-y/python-package-copier/pull/291)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.41.3] - 2026-08-10
 
 This **patch release** includes 2 commits.
