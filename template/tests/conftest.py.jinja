@@ -4,14 +4,6 @@ import pytest
 from hypothesis import settings
 from hypothesis.database import DirectoryBasedExampleDatabase
 
-# Deliberately here, between the imports and the fixtures, and NOT at the end of the
-# file. Moving it to the end was tried in v0.41.3 to avoid a ruff E402 in projects
-# whose conftest imports their own package below `import pytest`. Measured on a real
-# repo, that move made `copier update` reject the whole file and revert it to this
-# stub: 184 lines to 41, with 143 lines of local fixtures surviving only in a `.rej`.
-# The E402 is a lint error visible at staging and fixed in one line; the move silently
-# destroys a project's test infrastructure. Do not move this block again.
-#
 # Hypothesis remembers failing examples so a rerun replays them first. That example
 # database defaults to `.hypothesis/` at the repo root; this puts it under
 # `.artifacts/` with every other piece of throwaway output. It has no config-file
