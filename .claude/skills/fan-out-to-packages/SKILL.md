@@ -184,6 +184,17 @@ earlier release did leave both copies, so **verify which happened** rather than 
 - It **overwrites binaries every run**, regardless of diff — no conflict, no `.rej`, only a
   `Bin NNNN -> NNNN` line. This ate project logos for months. Only `_skip_if_exists`
   stops it; "Tier 3" is a convention for whoever *resolves* an update and is never reached.
+- **Moving a block within a template file is a whole-file rewrite, and it destroys
+  divergent copies.** Measured in the v0.41.3 round: relocating a 15-line settings block
+  from the middle of the template's `tests/conftest.py` to the end -- no content change,
+  just position -- made `copier update` reject the entire file on a repo whose conftest
+  had grown to 184 lines, reverting it to the 41-line template stub with 143 lines of
+  local fixtures surviving only in a `.rej`. Reverting the move made the same update
+  apply cleanly with no `.rej` at all, which is what identified the cause.
+  This is the whitespace-tutorial hazard below with a different trigger, and it was
+  introduced *by a fix for a lint warning*. Weigh the two failure modes before moving
+  anything in a file projects customise: a lint error surfaces at staging and costs one
+  line, a rejected hunk costs whatever the project had written.
 - It applies an update as **a diff against the template's version**. Once a local file no
   longer resembles it, one shifted line rejects the whole hunk and the page reverts to the
   stub, content surviving only in a `.rej` nobody reads. A **whitespace-only** template
