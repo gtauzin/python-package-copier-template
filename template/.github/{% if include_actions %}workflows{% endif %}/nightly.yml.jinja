@@ -14,6 +14,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      # A nightly exists to report, not to fail fast. Cancelling the other
+      # interpreters on the first failure turns one bad minute into a run that
+      # says nothing about the versions it never reached.
+      fail-fast: false
       matrix:
         python-version: [{%- set versions = ["3.11", "3.12", "3.13", "3.14"] -%}
           {%- for v in versions if v >= min_python_version and v <= max_python_version -%}
@@ -43,15 +47,28 @@ jobs:
         # renovate: datasource=pypi depName=nox
         run: uv tool install nox==2026.7.11
 
+      # `test_coverage` is pinned to the minimum Python, so `nox -s test_coverage`
+      # runs that interpreter whatever the matrix entry says. Asking for it on every
+      # entry ran the same suite once per version and exercised no other interpreter;
+      # the split mirrors the full/coverage split in tests.yml.
       - name: Run tests with coverage
+        if: {% raw %}matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}'{% endraw %}
         run: nox -s test_coverage
+
+      - name: Run tests
+        if: {% raw %}matrix.python-version != '{% endraw %}{{ min_python_version }}{% raw %}'{% endraw %}
+        run: nox -s test --python {% raw %}${{ matrix.python-version }}{% endraw %}
 
       - name: Run docstring tests
         run: nox -s test_docstrings
 
 {% if include_codecov %}      - name: Upload coverage reports
         uses: codecov/codecov-action@v7
-        if: {% raw %}${{ matrix.python-version == '3.12'{% endraw %}{% if repo_visibility != 'public' %}{% raw %} && env.CODECOV_TOKEN != ''{% endraw %}{% endif %}{% raw %} }}{% endraw %}
+        # Gated on the entry that PRODUCES the report. This was a hardcoded '3.12'
+        # while `test_coverage` is pinned to the minimum Python, so it uploaded that
+        # run's coverage under a 3.12 label -- and in a project whose matrix has no
+        # 3.12 entry at all it uploaded nothing, silently and forever.
+        if: {% raw %}${{ matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}'{% endraw %}{% if repo_visibility != 'public' %}{% raw %} && env.CODECOV_TOKEN != ''{% endraw %}{% endif %}{% raw %} }}{% endraw %}
         with:
 {% if repo_visibility == 'public' %}          use_oidc: true
 {% else %}          token: {% raw %}${{ env.CODECOV_TOKEN }}{% endraw %}
