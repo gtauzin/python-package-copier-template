@@ -6,6 +6,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.41.3] - 2026-08-10
+
+This **patch release** includes 2 commits.
+
+
+### Bug Fixes
+- Close the second coverage upload, and anchor the Hypothesis block  ([#288](https://github.com/stateful-y/python-package-copier/pull/288)) by @gtauzin
+
+### Documentation
+- Replace three claims with measurements from the v0.41.2 round  ([#287](https://github.com/stateful-y/python-package-copier/pull/287)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.41.2] - 2026-08-09
 
 This **patch release** includes 3 commits.
