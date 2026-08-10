@@ -12,10 +12,10 @@ This **patch release** includes 2 commits.
 
 
 ### Bug Fixes
-- Close the second coverage upload, and anchor the Hypothesis block  ([#288](https://github.com/stateful-y/python-package-copier/pull/288)) by @gtauzin
+- Check every coverage upload, not just the one in tests.yml  ([#288](https://github.com/stateful-y/python-package-copier/pull/288)) by @gtauzin
 
 ### Documentation
-- Replace three claims with measurements from the v0.41.2 round  ([#287](https://github.com/stateful-y/python-package-copier/pull/287)) by @gtauzin
+- Correct three measured claims in the fleet-rollout guide  ([#287](https://github.com/stateful-y/python-package-copier/pull/287)) by @gtauzin
 
 ### Contributors
 
