@@ -113,6 +113,16 @@ a template bug: report it, do not accommodate it.
 
 ## 3. What every repo must satisfy (the invariants)
 
+**Known template inefficiency, reported not fixed.** `nightly.yml` runs `nox -s
+test_coverage` on every matrix entry, but that session is pinned to `PYTHON_VERSIONS[0]`
+-- so the same suite runs once per entry and no other interpreter is exercised. Its
+Codecov upload is also gated on 3.12 while the report comes from the minimum version.
+yohou fixes both locally (a `test_coverage`/`test` split by version, a parametrised
+`test_docstrings`, and the upload re-gated onto the entry that produces the report), and
+that local shape is worth adopting upstream. Until it is, do not "normalise" yohou's
+`nightly.yml` toward the template's.
+
+
 - The `docs_build/*.py` files are **Tier 1** — the `_markers.py`/`_glossary.py` markdown
   extensions, the `_see_also.py`/`_source_links.py` Griffe extensions, the shared
   `_git_ref.py`, and the `build.py`/`_api_pages.py`/`_notebooks.py`/`_markdown_export.py`
@@ -349,6 +359,31 @@ checked.
 - `__gallery__` assigned inside an `@app.cell` is invisible — `ast.iter_child_nodes` only
   sees module level. Both of yohou-nixtla's notebooks were in no gallery at all, silently.
 
+**A workflow with no `pull_request` trigger is verified by NOTHING in a fan-out.**
+`nightly.yml` runs on `schedule` and `workflow_dispatch` only, so every green tick on every
+PR proves its YAML parses, not that its steps work. v0.41.4 changed its Codecov step and
+added `fail_ci_if_error: true` -- newly able to fail that job -- and seven green PRs would
+have said nothing about it. Two agents flagged this rather than letting the green stand.
+`gh workflow run <file> --repo OWNER/REPO --ref <pr-branch>` dispatches it on the PR branch
+and gives real evidence in minutes; for v0.41.4 the log showed `CC_DISABLE_SEARCH: true`,
+`CC_FILES: .../.artifacts/coverage.xml`, `Found 1 coverage files to report`. Do this
+whenever a release touches a schedule-only workflow.
+
+**A pre-flight predicts destruction, not conflicts.** Running the update against clones of
+all seven repos before tagging v0.41.4 correctly established that no conftest was harmed.
+It also predicted `.rej`s in two repos and neither materialised, against the same tag and
+the same `_commit`, unreconciled. The mechanism an agent gave for its own clean run is the
+useful half: the template's hunk and the local edits sat on **different lines**, and
+disjoint edits three-way merge without conflict -- a `.rej` needs a local edit on the lines
+the template touches. Trust a pre-flight for *was anything destroyed*; treat its conflict
+list as a list of things to check, never as a forecast.
+
+**A merged PR accumulates more checks than an open one.** Comparing "how many checks RAN"
+across rounds gave 33 on a merged PR against 32 on an open one in the same repo, which
+reads as a silently shrinking check set. Benign: the four extra were release-path jobs
+(`build`, `create-release`, `Publish the GitHub Release`, `Publish to PyPI`) that attach
+only after merge. Compare open-to-open.
+
 **Tooling lies.**
 - **`gh pr edit` silently fails here** (GraphQL Projects-classic deprecation). Use
   `gh api -X PATCH repos/OWNER/REPO/pulls/N -f title=... -F body=@file` and **read it back**.
@@ -395,6 +430,11 @@ checked.
   commit returned 200 and served a page **without** the paragraph that PR added. §6's
   "fetch RTD state with curl" is a dead control there — use the container build's rendered
   `<article>` instead.
+- **`pytest -p no:cacheprovider` now runs ZERO tests and reports success.** The generated
+  `pyproject.toml` sets `cache_dir` under `.artifacts/`; disabling the cache plugin makes
+  that option unrecognised and the run collapses before collection. An agent used the flag
+  while falsifying a check, got "no failures", and nearly concluded the check was broken.
+  Never add it, and assert a non-zero test count before believing any clean falsification.
 - A stale `.rumdl_cache` gives a **false clean**. Delete it and re-run.
 - Cached notebook exports (`.source_hash`) make a docs build **vacuous**. Clear
   `docs/examples/<stem>/` first — but never `rm -rf docs/examples`, which deletes a tracked
