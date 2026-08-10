@@ -4,18 +4,13 @@ import pytest
 from hypothesis import settings
 from hypothesis.database import DirectoryBasedExampleDatabase
 
-
-@pytest.fixture
-def sample_data():
-    """Provide sample data for tests."""
-    return {"key": "value", "number": 42}
-
-
-# Deliberately at the end of the file, not up with the imports. `copier update`
-# applies this as a diff, and a project whose conftest imports its own package below
-# `import pytest` had these module-level statements inserted ABOVE that import --
-# ruff E402, lint red, only visible after staging. Anchored here, the hunk lands after
-# whatever the project has.
+# Deliberately here, between the imports and the fixtures, and NOT at the end of the
+# file. Moving it to the end was tried in v0.41.3 to avoid a ruff E402 in projects
+# whose conftest imports their own package below `import pytest`. Measured on a real
+# repo, that move made `copier update` reject the whole file and revert it to this
+# stub: 184 lines to 41, with 143 lines of local fixtures surviving only in a `.rej`.
+# The E402 is a lint error visible at staging and fixed in one line; the move silently
+# destroys a project's test infrastructure. Do not move this block again.
 #
 # Hypothesis remembers failing examples so a rerun replays them first. That example
 # database defaults to `.hypothesis/` at the repo root; this puts it under
@@ -30,3 +25,9 @@ def sample_data():
 # version resolved.
 settings.register_profile("default", database=DirectoryBasedExampleDatabase(".artifacts/hypothesis"))
 settings.load_profile("default")
+
+
+@pytest.fixture
+def sample_data():
+    """Provide sample data for tests."""
+    return {"key": "value", "number": 42}
