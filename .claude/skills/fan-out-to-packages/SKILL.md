@@ -31,7 +31,7 @@ would get a silent empty return from it, but none exists yet.
 | yohou-optuna | True | 5 notebooks, all flat. Carries **16 custom skills / 37 files** under `.claude/skills/` that must stay tracked (this cell said 15/36 until the v0.41.1 round measured it; the extra is `polish-changelog`). (`plot_model_comparison_bar` is **yohou's**, not this repo's — an earlier version of this table said otherwise.) |
 | sklearn-wrap | True | 9 flat notebooks. `--extra config` is needed for **`ty`** and for **notebook execution during export**, but *not* for rendering: `check_docs` passes with pydantic absent because mkdocstrings uses griffe's static analysis. So `build_docs`/`build_steps` fail locally on `examples/yaml_config.py` while CI and RTD stay green — RTD's recipe passes the extra, the nox sessions never got it (`test_docstrings` already does, so the pattern exists locally). Pre-existing, verified identical on the prior tag. An earlier version of this table said the extra was "not for the docs build", full stop; that is wrong for the export leg. `test_docstrings` has **no matrix parametrization** here — a single ubuntu job on 3.11 — so do not go looking for one to preserve. Went RTD-red once from the v0.22.0 gallery bug. |
 | sklearn-optuna | True | 9 flat notebooks. **See Also: 13 sections, 32 entries, 0 unlinked** — that is the whole useful fact. Do *not* re-add a breakdown of where those links point: this cell has carried three mutually contradictory versions (dependency-inventory resolution; 21 external to `docs.python.org`; 21 internal + 9 API + 2 external), each written confidently from a single agent's measurement, and a spot-check of a live page found 3 links all internal. Nothing in a fan-out turns on the answer. Carries `Sampler`/`Storage`, whose only member is `__init__` — filtered out — which makes it the fleet's test case for anything sensitive to *rendered* vs declared members. |
-| **kedro-dagster** | **False** | No notebooks. Largest docstring surface (~126 See Also links). `docstring_options: {warn_unknown_params: false}` emits 77 griffe warnings if flipped, and is recorded here as CI-critical. **The fatal half is unverified**: the equivalent claim for kedro-azureml was re-measured in the v0.41.1 round and proved stale (46 warnings, then exit 0 under zensical 0.0.51). Keep the key either way; do not repeat "fails the build" as fact until someone measures it. Snippets `base_path` must stay `[docs, .]`: it includes repo-root-relative `src/kedro_dagster/templates/*`. `datasets/` re-export layout. Renamed its page to **`troubleshoot.md`**, and keeps a `test-versions` job (with its `needs:`) that copier has deleted before — it lives in **`nightly.yml:54`** (was recorded as :45 for several releases) and a dedicated **`tests-versions.yml`**, *not* in `tests.yml`; an agent grepping `tests.yml` per this file's old phrasing found nothing and briefly thought it had hit that exact loss. Its curated `pages/reference/datasets.md` is the fleet's only multi-object `:::` page, which makes it the sole real test for anything about duplicate ids or per-object section stripping. Its `tests-versions.yml` `astral-sh/setup-uv` step is bespoke (copier does not own it) — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
+| **kedro-dagster** | **False** | No notebooks. Largest docstring surface (~126 See Also links). `docstring_options: {warn_unknown_params: false}` is **noise-critical, not CI-critical** — measured in the v0.41.2 round by a clean A/B in an isolated worktree, one tree, one nox env, only the key differing: **80** griffe warnings with it on, **0** with it off, and **exit 0, "No issues found", 98 pages either way**. This cell said 77 warnings and *fails the build*; both halves were wrong. Keep the key at `false` regardless — 80 lines of log noise is reason enough — but the real fix, if anyone wants it gone, is the pydantic docstrings, not the key. Snippets `base_path` must stay `[docs, .]`: it includes repo-root-relative `src/kedro_dagster/templates/*`. `datasets/` re-export layout. Renamed its page to **`troubleshoot.md`**, and keeps a `test-versions` job (with its `needs:`) that copier has deleted before — it lives in **`nightly.yml:54`** (was recorded as :45 for several releases) and a dedicated **`tests-versions.yml`**, *not* in `tests.yml`; an agent grepping `tests.yml` per this file's old phrasing found nothing and briefly thought it had hit that exact loss. Its curated `pages/reference/datasets.md` is the fleet's only multi-object `:::` page, which makes it the sole real test for anything about duplicate ids or per-object section stripping. Its `tests-versions.yml` `astral-sh/setup-uv` step is bespoke (copier does not own it) — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
 | **kedro-azureml-pipeline** | **False** | No notebooks. `warn_unknown_params: false` is worth keeping — flipping it produces exactly **46** griffe warnings. The **46 is confirmed; the "and fails `--strict`" half is stale**: under zensical 0.0.51 the build prints all 46, then `No issues found`, exit 0. So it is noise-critical, not CI-critical. kedro-dagster's identical "77 warnings and now *fails* the build" claim is likely stale the same way and has not been re-measured. Its `inventories` is **the template default** (`docs.python.org` only), *not* a local extension — an earlier version of this table said it kept a local list, and an agent that went looking for one to preserve found nothing. `distributed/` re-export layout. Best index coverage in the fleet. Renamed its page to **`troubleshoot.md`**. `test_versions` matrix runs **10** jobs — 4 on 3.11, 4 on 3.12, 2 on 3.13, because 3.13 omits the `azure-ai-ml<1.20` pair. This cell said **12** for several releases; two independent fan-out agents measured 10 against byte-identical workflows, so the 12 was arithmetic rather than observation. Also: the ambient interpreter is 3.14, where **kedro raises `KedroPythonVersionWarning` on import**, so this package cannot be imported there despite `requires-python` having no upper bound — `check_docs` is pinned to 3.11 and unaffected. Answers cap at `max_python_version: 3.13`, but `requires-python` has **no upper bound** — see the interpreter note in §5. Its `test_versions` matrix lives in a bespoke `tests-versions.yml` with its own `astral-sh/setup-uv` step copier does not own — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
 
 **`include_examples: False` is real and load-bearing.** For those two repos the gallery,
@@ -347,12 +347,23 @@ checked.
   The `if: github.event.pull_request.commits == 1` is at **step** level, not job level, so
   the job reports `success` with all its real steps skipped. In `gh pr checks` that is
   indistinguishable from a real pass, and an agent watching for `skipping` to confirm the
-  handoff will never see it. Verified on yohou #142 after folding a second release in.
-  This entry said "flips from pass to skip, which is correct" — a green tick over an empty
-  set, recorded as benign, which is this fleet's dominant failure shape. The substantive
-  point is unchanged: with two commits GitHub
-  takes the squash title from the **PR title**, which `pr-title.yml` validates instead.
-  **This makes the PR title load-bearing for the changelog** — update it when you fold.
+  handoff will never see it. **Six agents measured this independently in one round.**
+
+    The step-level gate is deliberate, and the workflow says why in its own comment: a
+    job-level `if` reports *no* conclusion, which leaves a required status check stuck
+    "waiting" and deadlocks the PR. The vacuous green is the price of making the job
+    requireable.
+
+    Two tells, since the check itself gives none: the **duration** collapses (28s with one
+    commit, 2-4s with two), and the job log runs `Set up job` straight to `Complete job` with
+    no step output. **It also inflates a "how many checks RAN" tally** -- it runs, and does
+    nothing -- so that count, which this file asks for precisely because "0 failures" is
+    meaningless, has the same hole in it.
+    This entry said "flips from pass to skip, which is correct" — a green tick over an empty
+    set, recorded as benign, which is this fleet's dominant failure shape. The substantive
+    point is unchanged: with two commits GitHub
+    takes the squash title from the **PR title**, which `pr-title.yml` validates instead.
+    **This makes the PR title load-bearing for the changelog** — update it when you fold.
 - **RTD 403s urllib's user-agent** — use `curl`. And in **yohou**, a green RTD preview is
   evidence of nothing about the PR: `.readthedocs.yml` does not build the docs at all, it
   `curl`s the `docs-site` release tarball that `docs-deploy.yml` publishes **from main**
@@ -500,6 +511,17 @@ committing, every generated page differs. Two agents hit this independently in o
 and both had to correct a "byte-identical" claim. Normalise every 40-hex SHA before
 diffing — and falsify the normaliser against an injected content change, so it is not
 just masking everything.
+
+**A correct measurement does not validate the remedy you inferred from it.** A second
+instance, from the v0.41.2 round, because it is the cleanest one yet. An agent correctly
+diagnosed that the shipped path gate's `if "site" not in text` guard admitted a
+`.readthedocs.yml` that publishes via a tarball, and proposed keying on the module's own
+`_pattern_for("site/")` instead. The diagnosis was exactly right. The remedy was worse than
+the bug: `(?<![\w./-])site/` cannot match `.artifacts/site/`, because the preceding slash is
+in the lookbehind class -- so a *correct* file would have been skipped too and the assertion
+would never have run on a healthy repo. It was validated against the skip case and never
+against the pass case. **Test the remedy against the outcome it is supposed to preserve, not
+only the one it is supposed to fix.**
 
 **A correct measurement does not validate the remedy you inferred from it.** Two agents
 measured, accurately, that declaring `griffe` pulls two extra distributions, and both
