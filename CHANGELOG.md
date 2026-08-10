@@ -12,8 +12,8 @@ This **patch release** includes 2 commits.
 
 
 ### Bug Fixes
-- Put the Hypothesis block back, it was destroying local fixtures  ([#290](https://github.com/stateful-y/python-package-copier/pull/290)) by @gtauzin
-- Leave the generated conftest byte-identical, it is effectively frozen  ([#291](https://github.com/stateful-y/python-package-copier/pull/291)) by @gtauzin
+- Stop an update from discarding a project's own test fixtures  ([#290](https://github.com/stateful-y/python-package-copier/pull/290)) by @gtauzin
+- Stop an update from discarding a project's own conftest imports  ([#291](https://github.com/stateful-y/python-package-copier/pull/291)) by @gtauzin
 
 ### Contributors
 
