@@ -12,11 +12,12 @@ This **patch release** includes 3 commits.
 
 
 ### Bug Fixes
-- Gate the nightly coverage upload on the version that produces it  ([#296](https://github.com/stateful-y/python-package-copier/pull/296)) by @gtauzin
-- Unblock PyPI publishing on metadata 2.5, and sharpen the changelog skill  ([#297](https://github.com/stateful-y/python-package-copier/pull/297)) by @gtauzin
+- Fix the nightly coverage upload gating on a hardcoded Python version  ([#296](https://github.com/stateful-y/python-package-copier/pull/296)) by @gtauzin
+- Unblock PyPI publishing rejected on core metadata 2.5  ([#297](https://github.com/stateful-y/python-package-copier/pull/297)) by @gtauzin
 
 ### Documentation
-- Four findings from the v0.41.4 round  ([#293](https://github.com/stateful-y/python-package-copier/pull/293)) by @gtauzin
+- Record what rolling v0.41.4 to the generated projects proved  ([#293](https://github.com/stateful-y/python-package-copier/pull/293)) by @gtauzin
+- Add a changelog rule against entries that name only a version  ([#297](https://github.com/stateful-y/python-package-copier/pull/297)) by @gtauzin
 
 ### Contributors
 
