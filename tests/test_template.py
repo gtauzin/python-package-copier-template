@@ -9,6 +9,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -5343,3 +5344,169 @@ def test_claude_md_survives_a_later_template_run(tmp_path):
     assert claude_md.read_text(encoding="utf-8") == owned, (
         "the template overwrote the project's own CLAUDE.md; _skip_if_exists is not holding"
     )
+
+
+# --- Citation metadata ------------------------------------------------------
+
+_BIBTEX_BLOCK = re.compile(r"^```bibtex\n(.*?)^```", re.MULTILINE | re.DOTALL)
+
+
+def _citation_file(project_dir):
+    """Return the generated CITATION.cff as (raw text, parsed mapping)."""
+    path = project_dir / "CITATION.cff"
+    assert path.is_file(), "the template ships no CITATION.cff at the project root"
+    raw = path.read_text(encoding="utf-8")
+    return raw, yaml.safe_load(raw)
+
+
+def test_citation_file_is_generated_at_the_root(copie_session_default):
+    """A generated project carries machine-readable citation metadata, at the root.
+
+    GitHub renders its "Cite this repository" button from this file and reads it from
+    the default branch's root only. Under `.github/` or `docs/` the file is not
+    relocated, it is unread, so the location is the requirement rather than a tidiness
+    preference.
+    """
+    project_dir = copie_session_default.project_dir
+    _, citation = _citation_file(project_dir)
+
+    for key in ("cff-version", "message", "title", "abstract", "type", "authors", "repository-code"):
+        assert key in citation, f"CITATION.cff is missing the required `{key}` field"
+    assert citation["authors"], "CITATION.cff lists no authors; the format requires at least one"
+
+    assert not (project_dir / ".github" / "CITATION.cff").exists(), (
+        "a CITATION.cff under .github/ is a file GitHub's citation widget never reads"
+    )
+    assert not (project_dir / "docs" / "CITATION.cff").exists(), (
+        "a CITATION.cff under docs/ is a file GitHub's citation widget never reads"
+    )
+
+
+def test_citation_file_carries_nothing_that_goes_stale(copie_session_default):
+    """No `version`, no `date-released`, and the DOI ships commented out.
+
+    Both fields are optional and the citation button works without them. Present, they
+    are wrong the day after the next release, in every generated project at once, and
+    keeping them right would mean a step in the release workflow. The `doi:` line is
+    the opposite case: it must be visible enough for a project to fill in, and inert
+    until one does.
+    """
+    raw, citation = _citation_file(copie_session_default.project_dir)
+
+    assert "version" not in citation, (
+        "CITATION.cff pins a version, which is wrong the day after the next release and has nothing keeping it right"
+    )
+    assert "date-released" not in citation, "CITATION.cff pins a release date with nothing keeping it right"
+
+    assert "doi" not in citation, "CITATION.cff ships an active doi field; no project in the fleet has a DOI"
+    assert re.search(r"^# doi:", raw, re.MULTILINE), (
+        "the commented `# doi:` placeholder is gone, so a project that deposits one has nowhere obvious to put it"
+    )
+
+
+def test_citation_fields_agree_with_package_metadata(copie_session_default):
+    """The citation and `pyproject.toml` cannot name different authors or licences.
+
+    Both render from the same answers, so a disagreement means one of the two stopped
+    reading the answer it is supposed to. That is worth catching here rather than in a
+    citation somebody publishes.
+    """
+    project_dir = copie_session_default.project_dir
+    _, citation = _citation_file(project_dir)
+    pyproject = tomllib.loads((project_dir / "pyproject.toml").read_text(encoding="utf-8"))
+
+    author = pyproject["project"]["authors"][0]
+    assert citation["authors"][0]["name"] == author["name"], "the citation names a different author than the package"
+    assert citation["authors"][0]["email"] == author["email"], (
+        "the citation carries a different author email than the package"
+    )
+
+    assert citation["license"] == pyproject["project"]["license"]["text"], (
+        "the citation states a different licence than the package"
+    )
+
+    answers = yaml.safe_load((project_dir / ".copier-answers.yml").read_text(encoding="utf-8"))
+    expected_repo = f"https://github.com/{answers['github_username']}/{answers['project_slug']}"
+    assert citation["repository-code"] == expected_repo, "the citation points at the wrong repository"
+    assert citation["title"] == answers["project_name"], "the citation cites something other than this project"
+
+
+def test_readme_citation_section_sits_between_licence_and_acknowledgements(copie_session_default):
+    """Placement is the requirement, not decoration.
+
+    The seven generated projects have rewritten most of their README but all seven
+    still carry the template's exact `## License` paragraph immediately followed by
+    `## Acknowledgements`. A section anchored between those two has matching context on
+    both sides everywhere, which is what decides whether a `copier update` hunk applies
+    or lands in a `.rej` nobody reads. Move it elsewhere and the fan-out stops being
+    automatic.
+    """
+    readme = (copie_session_default.project_dir / "README.md").read_text(encoding="utf-8")
+
+    licence_at = readme.find("\n## License")
+    citation_at = readme.find("\n## How do I cite")
+    acknowledgements_at = readme.find("\n## Acknowledgements")
+
+    assert citation_at != -1, "the README never tells a reader how to cite the project"
+    assert licence_at != -1 and acknowledgements_at != -1, (
+        "the README anchors this section is placed between are gone; the fan-out hunk has no context"
+    )
+    assert licence_at < citation_at < acknowledgements_at, (
+        "the citation section moved out from between License and Acknowledgements, so the "
+        "update hunk no longer has matching context in the generated projects"
+    )
+
+    section = readme[citation_at:acknowledgements_at]
+    assert "CITATION.cff" in section, "the README section never points at the machine-readable file"
+    assert "pages/reference/citation/" in section, "the README section never points at the docs citation page"
+
+
+def test_readme_and_docs_cite_the_project_identically(copie_session_default):
+    """Two copies of a citation that can disagree eventually do.
+
+    The README and the docs page both carry a copy-pasteable BibTeX entry, because
+    sending a README reader elsewhere for the one thing they came for is worse than a
+    second copy. What makes the second copy safe is this test: both are rendered from
+    the same expressions, and an edit to one template file and not the other fails
+    here instead of shipping two answers to the same question.
+    """
+    project_dir = copie_session_default.project_dir
+    readme = (project_dir / "README.md").read_text(encoding="utf-8")
+    docs_page = (project_dir / "docs" / "pages" / "reference" / "citation.md").read_text(encoding="utf-8")
+
+    in_readme = _BIBTEX_BLOCK.search(readme)
+    in_docs = _BIBTEX_BLOCK.search(docs_page)
+
+    # Assert both were found before comparing. Two failed searches compare equal as
+    # "not found", and this test would then pass by measuring nothing.
+    assert in_readme, "the README carries no ```bibtex block"
+    assert in_docs, "the docs citation page carries no ```bibtex block"
+
+    assert in_readme.group(1) == in_docs.group(1), (
+        "the README and the docs citation page ship different BibTeX entries:\n"
+        f"README:\n{in_readme.group(1)}\ndocs:\n{in_docs.group(1)}"
+    )
+
+
+def test_seeded_reference_index_lists_the_citation_page(copie_session_default):
+    """The citation page is reachable, not merely present.
+
+    Driven through the real marker extension and the real mkdocs.yml nav rather than
+    the source markdown, because `<!-- SUBPAGES -->` renders nothing and warns nothing
+    when a project has replaced its index by hand. That is how `security.md` reached
+    four projects unlinked: the file was there, the page was built, and nothing linked
+    to it.
+    """
+    project_dir = copie_session_default.project_dir
+    citation_page = project_dir / "docs" / "pages" / "reference" / "citation.md"
+    assert citation_page.is_file(), "the template ships no docs citation page"
+
+    markers = _load_markers(project_dir, "reference_index_citation")
+    page = _FakePage("pages/reference/index.md", "pages/reference/index.html")
+    source = (project_dir / "docs" / "pages" / "reference" / "index.md").read_text(encoding="utf-8")
+
+    with caplog_at_warning() as records:
+        out = markers._inject(source, page)
+
+    assert "(citation.md)" in out, "the reference index does not link the citation page, so nothing reaches it"
+    assert not records, f"resolving the reference index warns, which fails --strict: {records}"

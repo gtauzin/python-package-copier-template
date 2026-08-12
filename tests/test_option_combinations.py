@@ -1,6 +1,7 @@
 """Tests for template option combinations and integration scenarios."""
 
 import pytest
+import yaml
 from _build_layout import BUILD_DIR
 
 
@@ -111,6 +112,19 @@ def test_all_licenses(copie, license_type):
     # Verify pyproject.toml has correct license (uses table format)
     pyproject_content = (result.project_dir / "pyproject.toml").read_text(encoding="utf-8")
     assert f'license = {{ text = "{license_type}" }}' in pyproject_content
+
+    # CITATION.cff validates its `license` against the SPDX list, and "Proprietary" is
+    # not an SPDX identifier. The field is optional, so it is emitted only for the four
+    # answers that are identifiers; emitting it for the fifth would ship a file that
+    # fails schema validation in every tool that reads it.
+    citation = yaml.safe_load((result.project_dir / "CITATION.cff").read_text(encoding="utf-8"))
+    assert citation, f"CITATION.cff did not parse for {license_type}"
+    if license_type == "Proprietary":
+        assert "license" not in citation, (
+            "CITATION.cff carries a non-SPDX license identifier, which fails schema validation"
+        )
+    else:
+        assert citation["license"] == license_type, f"CITATION.cff states the wrong licence for {license_type}"
 
 
 @pytest.mark.parametrize(

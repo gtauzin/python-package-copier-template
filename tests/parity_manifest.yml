@@ -222,6 +222,17 @@ file_gates:
       Adopted, with wording corrected for what this repo is: a fix reaches a generated
       project only when that project runs `copier update`, so there is no patched
       release to consume. Also satisfies an OpenSSF Scorecard check.
+  file:CITATION.cff:
+    status: excluded
+    reason: >-
+      This repo is a Copier template, not software anyone cites: it is not on PyPI, it
+      has no importable package, and a paper that used it would cite the seven packages
+      it generated rather than the generator. It ships citation metadata (the file, a
+      README section and docs/pages/reference/citation.md) to every generated project
+      and deliberately carries none of the three itself. This entry is what makes that
+      a reviewed decision rather than an omission, which is the whole point of the
+      derivation: the file arrived here as an unanswered gate the moment the template
+      began shipping it.
 
   # --- pre-commit / prek hooks --------------------------------------------
   hook:trailing-whitespace: {status: matched, reason: same builtin hook.}

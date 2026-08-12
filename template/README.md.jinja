@@ -145,6 +145,25 @@ For questions and discussions, you can also open a [discussion](https://github.c
 
 This project is licensed under the terms of the [{{ license }} License](https://github.com/{{ github_username }}/{{ project_slug }}/blob/main/LICENSE).
 
+## How do I cite {{ project_name }}?
+
+If you use {{ project_name }} in work you publish, please cite it:
+
+{{ author_name }}. {{ project_name }}. https://github.com/{{ github_username }}/{{ project_slug }}
+
+Or in BibTeX:
+
+```bibtex
+@software{{ '{' }}{{ package_name }},
+  author  = "{{ author_name }}",
+  title   = "{{ '{' }}{{ project_name }}}",
+  url     = "https://github.com/{{ github_username }}/{{ project_slug }}",
+  license = "{{ license }}"
+}
+```
+
+Reference managers can read [CITATION.cff](https://github.com/{{ github_username }}/{{ project_slug }}/blob/main/CITATION.cff) directly. To cite a specific version, see the [citation page](https://{{ project_slug }}.readthedocs.io/en/latest/pages/reference/citation/).
+
 ## Acknowledgements
 
 This project is maintained by [stateful-y](https://stateful-y.io), an ML consultancy specializing in MLOps and data science & engineering. If you're interested in collaborating or learning more about our services, please visit our website.
