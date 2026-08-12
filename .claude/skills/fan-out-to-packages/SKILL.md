@@ -31,12 +31,18 @@ would get a silent empty return from it, but none exists yet.
 | yohou-optuna | True | 5 notebooks, all flat. Carries **16 custom skills / 37 files** under `.claude/skills/` that must stay tracked (this cell said 15/36 until the v0.41.1 round measured it; the extra is `polish-changelog`). (`plot_model_comparison_bar` is **yohou's**, not this repo's — an earlier version of this table said otherwise.) |
 | sklearn-wrap | True | 9 flat notebooks. `--extra config` is needed for **`ty`** and for **notebook execution during export**, but *not* for rendering: `check_docs` passes with pydantic absent because mkdocstrings uses griffe's static analysis. So `build_docs`/`build_steps` fail locally on `examples/yaml_config.py` while CI and RTD stay green — RTD's recipe passes the extra, the nox sessions never got it (`test_docstrings` already does, so the pattern exists locally). Pre-existing, verified identical on the prior tag. An earlier version of this table said the extra was "not for the docs build", full stop; that is wrong for the export leg. `test_docstrings` has **no matrix parametrization** here — a single ubuntu job on 3.11 — so do not go looking for one to preserve. Went RTD-red once from the v0.22.0 gallery bug. |
 | sklearn-optuna | True | 9 flat notebooks. **See Also: 13 sections, 32 entries, 0 unlinked** — that is the whole useful fact. Do *not* re-add a breakdown of where those links point: this cell has carried three mutually contradictory versions (dependency-inventory resolution; 21 external to `docs.python.org`; 21 internal + 9 API + 2 external), each written confidently from a single agent's measurement, and a spot-check of a live page found 3 links all internal. Nothing in a fan-out turns on the answer. Carries `Sampler`/`Storage`, whose only member is `__init__` — filtered out — which makes it the fleet's test case for anything sensitive to *rendered* vs declared members. |
-| **kedro-dagster** | **False** | No notebooks. Largest docstring surface (~126 See Also links). `docstring_options: {warn_unknown_params: false}` is **noise-critical, not CI-critical** — measured in the v0.41.2 round by a clean A/B in an isolated worktree, one tree, one nox env, only the key differing: **80** griffe warnings with it on, **0** with it off, and **exit 0, "No issues found", 98 pages either way**. This cell said 77 warnings and *fails the build*; both halves were wrong. Keep the key at `false` regardless — 80 lines of log noise is reason enough — but the real fix, if anyone wants it gone, is the pydantic docstrings, not the key. Snippets `base_path` must stay `[docs, .]`: it includes repo-root-relative `src/kedro_dagster/templates/*`. `datasets/` re-export layout. Renamed its page to **`troubleshoot.md`**, and keeps a `test-versions` job (with its `needs:`) that copier has deleted before — it lives in **`nightly.yml:54`** (was recorded as :45 for several releases) and a dedicated **`tests-versions.yml`**, *not* in `tests.yml`; an agent grepping `tests.yml` per this file's old phrasing found nothing and briefly thought it had hit that exact loss. Its curated `pages/reference/datasets.md` is the fleet's only multi-object `:::` page, which makes it the sole real test for anything about duplicate ids or per-object section stripping. Its `tests-versions.yml` `astral-sh/setup-uv` step is bespoke (copier does not own it) — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
+| **kedro-dagster** | **False** | No notebooks. Largest docstring surface (~126 See Also links). `docstring_options: {warn_unknown_params: false}` is **noise-critical, not CI-critical** — measured in the v0.41.2 round by a clean A/B in an isolated worktree, one tree, one nox env, only the key differing: **80** griffe warnings with it on, **0** with it off, and **exit 0, "No issues found", 98 pages either way**. This cell said 77 warnings and *fails the build*; both halves were wrong. Keep the key at `false` regardless — 80 lines of log noise is reason enough — but the real fix, if anyone wants it gone, is the pydantic docstrings, not the key. Snippets `base_path` must stay `[docs, .]`: it includes repo-root-relative `src/kedro_dagster/templates/*`. `datasets/` re-export layout. Renamed its page to **`troubleshoot.md`**, and keeps a `test-versions` job (with its `needs:`) that copier has deleted before — it lives in **`nightly.yml`**, as a `uses:` call to a dedicated **`tests-versions.yml`**, *not* in `tests.yml`; an agent grepping `tests.yml` per this file's old phrasing found nothing and briefly thought it had hit that exact loss. **No line number is recorded here on purpose**: it has been wrong three times running (:45, then :54, then :61 after v0.41.5 added lines above it), so locate it by name. **It is a reusable-workflow call with ZERO inline `steps`** — a job-list check that filters on step count drops it silently, which is the exact loss shape this cell exists to prevent. Its `test-compat` is also hardcoded `if: False`, so that check is permanently vacuous. Its curated `pages/reference/datasets.md` is the fleet's only multi-object `:::` page, which makes it the sole real test for anything about duplicate ids or per-object section stripping. Its `tests-versions.yml` `astral-sh/setup-uv` step is bespoke (copier does not own it) — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
 | **kedro-azureml-pipeline** | **False** | No notebooks. `warn_unknown_params: false` is worth keeping — flipping it produces exactly **46** griffe warnings. The **46 is confirmed; the "and fails `--strict`" half is stale**: under zensical 0.0.51 the build prints all 46, then `No issues found`, exit 0. So it is noise-critical, not CI-critical. kedro-dagster's identical "77 warnings and now *fails* the build" claim is likely stale the same way and has not been re-measured. Its `inventories` is **the template default** (`docs.python.org` only), *not* a local extension — an earlier version of this table said it kept a local list, and an agent that went looking for one to preserve found nothing. `distributed/` re-export layout. Best index coverage in the fleet. Renamed its page to **`troubleshoot.md`**. `test_versions` matrix runs **10** jobs — 4 on 3.11, 4 on 3.12, 2 on 3.13, because 3.13 omits the `azure-ai-ml<1.20` pair. This cell said **12** for several releases; two independent fan-out agents measured 10 against byte-identical workflows, so the 12 was arithmetic rather than observation. Also: the ambient interpreter is 3.14, where **kedro raises `KedroPythonVersionWarning` on import**, so this package cannot be imported there despite `requires-python` having no upper bound — `check_docs` is pinned to 3.11 and unaffected. Answers cap at `max_python_version: 3.13`, but `requires-python` has **no upper bound** — see the interpreter note in §5. Its `test_versions` matrix lives in a bespoke `tests-versions.yml` with its own `astral-sh/setup-uv` step copier does not own — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
 
 **`include_examples: False` is real and load-bearing.** For those two repos the gallery,
-companion-notebook and `GALLERY:section` machinery is Jinja-gated *out of their
-`docs_build/_markers.py` entirely*, and `docs_build/_notebooks.py` is not emitted at all.
+companion-notebook and `GALLERY:section` **substitution** machinery is Jinja-gated out of
+their `docs_build/_markers.py` (7 `{% if include_examples %}` blocks), and
+`docs_build/_notebooks.py` is not emitted at all. Not *entirely*, though — this file said
+"entirely" and it is imprecise: `_MARKER_NAMES` (including `GALLERY`,
+`COMPANION_NOTEBOOKS`, `EXAMPLES_FOR`) and the unhandled-marker regex stay **ungated** and
+do render there. That is deliberate — it is the leftover-marker detector, and a stray
+`<!-- GALLERY -->` in a no-examples repo should warn rather than render as blank space.
+Do not "fix" it.
 Any release that only touches example machinery is genuinely inert
 for them — verify by diffing the two pristine renders rather than assuming either way.
 If an update tries to introduce example content or an `Examples` nav entry there, that is
@@ -113,14 +119,23 @@ a template bug: report it, do not accommodate it.
 
 ## 3. What every repo must satisfy (the invariants)
 
-**Known template inefficiency, reported not fixed.** `nightly.yml` runs `nox -s
-test_coverage` on every matrix entry, but that session is pinned to `PYTHON_VERSIONS[0]`
--- so the same suite runs once per entry and no other interpreter is exercised. Its
-Codecov upload is also gated on 3.12 while the report comes from the minimum version.
-yohou fixes both locally (a `test_coverage`/`test` split by version, a parametrised
-`test_docstrings`, and the upload re-gated onto the entry that produces the report), and
-that local shape is worth adopting upstream. Until it is, do not "normalise" yohou's
-`nightly.yml` toward the template's.
+**Template inefficiency — MOSTLY FIXED as of v0.41.5, and this paragraph was stale for
+one release.** `nightly.yml` used to run `nox -s test_coverage` on every matrix entry while
+that session is pinned to `PYTHON_VERSIONS[0]`, so the same suite ran once per entry and no
+other interpreter was exercised; its Codecov upload was gated on a hardcoded `'3.12'` while
+the report comes from the minimum version. yohou fixed all three locally, and **v0.41.5
+adopted two of them upstream**: the `test_coverage`/`test` split by version, and the upload
+re-gated onto the entry that produces the report. Measured on the fan-out: 3.12/3.13/3.14
+now genuinely run their own interpreters, where before all entries re-ran the minimum.
+
+Still local to yohou, and still worth preserving: its **parametrised
+`test_docstrings-${{ matrix.python-version }}`** — the template emits a bare
+`nox -s test_docstrings`. So "do not normalise yohou's `nightly.yml` toward the template's"
+now applies to that one line and to yohou's comment wording, not to the whole file; in
+v0.41.5 the file came out byte-identical, which is the correct outcome.
+**That line is a live hazard on any release touching this file**: it sits immediately
+between the two blocks v0.41.5 rewrote, and §4 records yohou having already lost it once to
+hunk-bundling. Hand-check it; do not bulk-accept.
 
 
 - The `docs_build/*.py` files are **Tier 1** — the `_markers.py`/`_glossary.py` markdown
@@ -167,6 +182,16 @@ Group a section index under `##` headings only when it is big enough to need it 
 `.artifacts/`. Whatever a previous build left at the root becomes untracked the moment the
 update lands. Delete it; do not re-add ignore entries. A plain `git add -A` right after the
 update will otherwise commit an entire built site.
+
+This has already fired, and it fires in **maintainers' working clones, not in fresh ones** —
+so a fan-out agent will not see it and will report the repo clean. `mkdocs.yml` now writes to
+`.artifacts/site`, which is ignored; a root `site/` left over from before the consolidation is
+not. Measured 2026-08-11 across the local clones: stale root `site/`, `.coverage`,
+`coverage.xml` and `junit.*.xml` were sitting in several, and because `rumdl` runs
+`rumdl check .` with `pass_filenames: false` and `[tool.rumdl] exclude` covers `.artifacts`
+but not `site/`, **prek and pre-push failed on generated markdown in three repos** — blocking
+commits that had nothing to do with it. The template is correct; the working copies are dirty.
+Delete the stale output rather than adding excludes.
 
 **A relocated file DESTROYS local content, silently.** `copier update` writes the file at
 its new path **and deletes the old one itself** — no conflict, no `.rej`, no prompt. Measured
@@ -299,12 +324,34 @@ checked.
   moment the template moves to `@v7.0.1`, that line matches neither side and rejects.
   v0.40.1 produced **20-22 inline conflicts per repo, in 8 files, with zero `.rej`** — in
   all seven repos at once.
-  **Always resolve by keeping the LOCAL digest and discarding the template's tag.** Digests
+  **Default: keep the LOCAL digest and discard the template's tag.** Digests
   are what the repo runs, what Scorecard's `PinnedDependenciesID` scores, and what Renovate
   maintains. Resolving toward the template silently un-pins the whole fleet. Do not add
   digests to anything new either — that is Renovate's job.
-  Consequence worth expecting: a workflow whose *only* template delta was the tag bump ends
-  the update **byte-identical to before**. That is the correct outcome, not a failed update.
+
+    **THE EXCEPTION, and it is not rare: when the template's action bump IS the payload, the
+    local digest is the bug.** This rule read "always" for several releases and was wrong in
+    v0.41.5, where the whole release existed to move `pypa/gh-action-pypi-publish` off v1.13.0
+    — whose bundled twine < 7 rejected the `Metadata-Version: 2.5` that unpinned hatchling had
+    started emitting, breaking PyPI publishing in **all seven repos at once**. Every local
+    digest *was* v1.13.0. Obeying "always" produces seven fully green PRs that deliver nothing
+    and leave the fleet unable to publish — this fleet's signature failure, at fan-out scale.
+    Seven agents flagged it independently.
+    So: keep the local digest **unless the release exists to move that action**, in which case
+    re-pin to the new version's **dereferenced commit SHA**, preserving digest-pinning. The
+    two cases are distinguishable only by asking what the release is *for* — v0.41.5 also
+    bumped `actions/create-github-app-token`, where the default rule still applied. Before
+    resolving, check what the local digest actually resolves to; if it is the version the
+    release is fixing, keep it and you have shipped the bug.
+    **Dereference annotated tags.** `gh api repos/OWNER/ACTION/git/ref/tags/vX.Y.Z` returns the
+    **tag object**, not the commit — pinning that SHA pins something no workflow can check out.
+    Use `repos/OWNER/ACTION/commits/vX.Y.Z`, or follow the tag object through `git/tags/<sha>`.
+    **Resolve line-by-line, not hunk-by-hunk.** A single conflict block routinely bundles a
+    digest revert *with* unrelated payload — in v0.41.5 `nightly.yml` carried the local
+    codecov digest and the template's Codecov re-gate in one block, in at least four repos.
+    Applying either rule to the whole block silently drops the other half.
+    Consequence worth expecting: a workflow whose *only* template delta was the tag bump ends
+    the update **byte-identical to before**. That is the correct outcome, not a failed update.
 - **`uses:` is not the only local delta in a workflow — `astral-sh/setup-uv`'s `version:`
   input is a second one.** The template seeds `"0.10.0"`; Renovate has moved the fleet to
   `"0.12.1"`, at **13-17 sites per repo across five templated workflows**. Three agents
@@ -401,6 +448,13 @@ only after merge. Compare open-to-open.
 - **`gh pr checks` also exits NON-ZERO while checks are still pending.** A poll loop that
   guards on exit status breaks out immediately and reports the partial state as final; mine
   did, on this release. Guard on the *output* (`grep -q pending`), not the exit code.
+- **`Compat tests` is hardcoded `if: false` in at least FIVE of the seven repos** (yohou-optuna,
+  yohou-nixtla, sklearn-optuna, sklearn-wrap, kedro-dagster — `# disabled until pins are
+  defined`), and the `ci-passed` roll-up treats `skipped` as acceptable. So its green covers a
+  job that never runs, in most of the fleet. Five agents reported the `skipping` independently
+  in one round, each having to establish it was pre-existing rather than a draft artifact.
+  Record it here so the next round does not re-derive it: it is NOT draft-gating, and it is
+  not something a fan-out introduced.
 - **`Validate Commit Message` does NOT skip on a multi-commit PR — it PASSES vacuously.**
   The `if: github.event.pull_request.commits == 1` is at **step** level, not job level, so
   the job reports `success` with all its real steps skipped. In `gh pr checks` that is
