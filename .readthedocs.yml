@@ -16,8 +16,9 @@ build:
   # config outright; every item below is a plain, unquoted scalar for that reason.
   commands:
     - asdf plugin add uv || true
-    - asdf install uv latest
-    - asdf global uv latest
+    # renovate: datasource=github-releases depName=astral-sh/uv
+    - asdf install uv 0.10.0
+    - asdf global uv 0.10.0
     # Docs deps only; this repo's docs do not import the project.
     - uv sync --group docs --no-install-project
     # Zensical has no site-dir flag: the site directory comes from `site_dir` in
