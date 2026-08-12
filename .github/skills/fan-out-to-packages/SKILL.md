@@ -329,29 +329,29 @@ checked.
   maintains. Resolving toward the template silently un-pins the whole fleet. Do not add
   digests to anything new either — that is Renovate's job.
 
-  **THE EXCEPTION, and it is not rare: when the template's action bump IS the payload, the
-  local digest is the bug.** This rule read "always" for several releases and was wrong in
-  v0.41.5, where the whole release existed to move `pypa/gh-action-pypi-publish` off v1.13.0
-  — whose bundled twine < 7 rejected the `Metadata-Version: 2.5` that unpinned hatchling had
-  started emitting, breaking PyPI publishing in **all seven repos at once**. Every local
-  digest *was* v1.13.0. Obeying "always" produces seven fully green PRs that deliver nothing
-  and leave the fleet unable to publish — this fleet's signature failure, at fan-out scale.
-  Seven agents flagged it independently.
-  So: keep the local digest **unless the release exists to move that action**, in which case
-  re-pin to the new version's **dereferenced commit SHA**, preserving digest-pinning. The
-  two cases are distinguishable only by asking what the release is *for* — v0.41.5 also
-  bumped `actions/create-github-app-token`, where the default rule still applied. Before
-  resolving, check what the local digest actually resolves to; if it is the version the
-  release is fixing, keep it and you have shipped the bug.
-  **Dereference annotated tags.** `gh api repos/OWNER/ACTION/git/ref/tags/vX.Y.Z` returns the
-  **tag object**, not the commit — pinning that SHA pins something no workflow can check out.
-  Use `repos/OWNER/ACTION/commits/vX.Y.Z`, or follow the tag object through `git/tags/<sha>`.
-  **Resolve line-by-line, not hunk-by-hunk.** A single conflict block routinely bundles a
-  digest revert *with* unrelated payload — in v0.41.5 `nightly.yml` carried the local
-  codecov digest and the template's Codecov re-gate in one block, in at least four repos.
-  Applying either rule to the whole block silently drops the other half.
-  Consequence worth expecting: a workflow whose *only* template delta was the tag bump ends
-  the update **byte-identical to before**. That is the correct outcome, not a failed update.
+    **THE EXCEPTION, and it is not rare: when the template's action bump IS the payload, the
+    local digest is the bug.** This rule read "always" for several releases and was wrong in
+    v0.41.5, where the whole release existed to move `pypa/gh-action-pypi-publish` off v1.13.0
+    — whose bundled twine < 7 rejected the `Metadata-Version: 2.5` that unpinned hatchling had
+    started emitting, breaking PyPI publishing in **all seven repos at once**. Every local
+    digest *was* v1.13.0. Obeying "always" produces seven fully green PRs that deliver nothing
+    and leave the fleet unable to publish — this fleet's signature failure, at fan-out scale.
+    Seven agents flagged it independently.
+    So: keep the local digest **unless the release exists to move that action**, in which case
+    re-pin to the new version's **dereferenced commit SHA**, preserving digest-pinning. The
+    two cases are distinguishable only by asking what the release is *for* — v0.41.5 also
+    bumped `actions/create-github-app-token`, where the default rule still applied. Before
+    resolving, check what the local digest actually resolves to; if it is the version the
+    release is fixing, keep it and you have shipped the bug.
+    **Dereference annotated tags.** `gh api repos/OWNER/ACTION/git/ref/tags/vX.Y.Z` returns the
+    **tag object**, not the commit — pinning that SHA pins something no workflow can check out.
+    Use `repos/OWNER/ACTION/commits/vX.Y.Z`, or follow the tag object through `git/tags/<sha>`.
+    **Resolve line-by-line, not hunk-by-hunk.** A single conflict block routinely bundles a
+    digest revert *with* unrelated payload — in v0.41.5 `nightly.yml` carried the local
+    codecov digest and the template's Codecov re-gate in one block, in at least four repos.
+    Applying either rule to the whole block silently drops the other half.
+    Consequence worth expecting: a workflow whose *only* template delta was the tag bump ends
+    the update **byte-identical to before**. That is the correct outcome, not a failed update.
 - **`uses:` is not the only local delta in a workflow — `astral-sh/setup-uv`'s `version:`
   input is a second one.** The template seeds `"0.10.0"`; Renovate has moved the fleet to
   `"0.12.1"`, at **13-17 sites per repo across five templated workflows**. Three agents
