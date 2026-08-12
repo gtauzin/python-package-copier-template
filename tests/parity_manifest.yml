@@ -80,6 +80,15 @@ file_gates:
     equivalent: changelog.yml:changelog
     status: matched
     reason: same git-cliff changelog PR flow, on the same tag trigger.
+  changelog.yml:verify-tag-signature:
+    equivalent: changelog.yml:verify-tag-signature
+    status: matched
+    reason: >-
+      Same job, gating the same `changelog` job through `needs`. Deliberately a job
+      rather than a step inside `changelog`: this manifest derives what the template
+      ships from workflow JOB ids, so a step would be invisible to it and this repo
+      could drop the check with nothing failing. The gate that measures a claim has to
+      be shaped so its own absence is measurable, which is the whole premise here.
   publish-release.yml:create-release:
     equivalent: publish-release.yml:create-release
     status: matched
