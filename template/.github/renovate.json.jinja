@@ -8,9 +8,14 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended"],
   "timezone": "Etc/UTC",
-  "schedule": ["before 9am on monday"],
+  "schedule": ["before 11am"],
   "labels": ["dependencies"],
   "dependencyDashboard": true,
+  "description": "The schedule is a wide daily window on purpose. A narrow one is a trap: whatever triggers Renovate is best-effort, so a window only slightly wider than the trigger is missed outright, and a missed window looks exactly like a healthy run that found nothing. `prHourlyLimit: 0` matters for the same reason: the default of 2 silently caps each run, so updates accumulate in the dashboard's Rate-Limited section faster than they drain.",
+  "prConcurrentLimit": 10,
+  "prHourlyLimit": 0,
+  "platformAutomerge": true,
+  "rebaseWhen": "behind-base-branch",
   "packageRules": [
     {
       "description": "Batch runtime, test and docs dependencies into one low-noise PR.",
@@ -28,6 +33,20 @@
       "description": "Label GitHub Actions updates.",
       "matchManagers": ["github-actions"],
       "addLabels": ["ci"]
+    },
+    {
+      "description": "Automerge the CI and tooling updates: action digest refreshes and action patch/minor bumps, plus the pinned tool versions the custom manager reads (uv, nox, git-cliff, gitleaks, twine, cyclonedx-bom). The `automerge` label is not decoration: renovate-automerge.yml keys on it, so it must appear on exactly the rules that set `automerge: true` and nowhere else. Majors are excluded because an action major can change its inputs or outputs.",
+      "matchManagers": ["github-actions", "custom.regex"],
+      "matchUpdateTypes": ["digest", "pin", "pinDigest", "patch", "minor"],
+      "automerge": true,
+      "addLabels": ["automerge"]
+    },
+    {
+      "description": "Automerge patch/minor for the lint tools. These are dev-only, and a lint upgrade that breaks the build breaks it in CI, which blocks the merge by construction. Kept as its own rule rather than folded into the one above so the lockstep grouping set earlier still applies. The grouped `python-dependencies` PR is deliberately NOT automerged: it mixes runtime and dev dependencies into a single PR, so there is no safe half of it to merge unattended.",
+      "matchPackageNames": ["ruff", "rumdl", "ty", "interrogate", "prek"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": true,
+      "addLabels": ["automerge"]
     }
   ],
   "customManagers": [
