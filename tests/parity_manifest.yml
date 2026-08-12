@@ -109,6 +109,14 @@ file_gates:
     equivalent: pr-title.yml:validate-pr-title
     status: matched
     reason: same conventional pull request title check.
+  renovate-automerge.yml:automerge:
+    equivalent: renovate-automerge.yml:automerge
+    status: matched
+    reason: >-
+      Same approve-then-auto-merge job. This repo needs it most: it carried the largest
+      rate-limited backlog of the eight (18 items against a drain rate of two pull
+      requests per week), because it is the only one whose template/ tree Renovate also
+      scans.
 
   # --- CI: scheduled and security -----------------------------------------
   nightly.yml:test:
