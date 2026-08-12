@@ -384,6 +384,72 @@ class TestChangelogWorkflow:
         assert "push:" in workflow_content
         assert "tags:" in workflow_content
 
+    def test_the_release_tag_signature_is_verified_before_anything_else_runs(self, copie):
+        """An unsigned release tag stops the release, and stops it first.
+
+        The contributing guide and the security posture both state that release tags
+        are signed. For five consecutive releases of this template they were not, and
+        nothing noticed: the requirement was written down and measured nowhere, which
+        is the same shape as every other control that turned out to be a claim.
+
+        A person creates the tag and that push starts the workflow, so no check can run
+        before the tag exists. What is available is order: this job must gate the rest
+        rather than race them, or the changelog PR opens for a release that is about to
+        be rejected.
+        """
+        import yaml
+
+        result = copie.copy(extra_answers={"include_actions": True})
+        assert result.exit_code == 0
+
+        workflow_path = result.project_dir / ".github" / "workflows" / "changelog.yml"
+        workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+        jobs = workflow.get("jobs") or {}
+
+        assert "verify-tag-signature" in jobs, (
+            "changelog.yml has no verify-tag-signature job, so an unsigned tag would reach "
+            f"a changelog PR and a release unchallenged; jobs are {sorted(jobs)}"
+        )
+        assert "verify-tag-signature" in (jobs["changelog"].get("needs") or []), (
+            "the changelog job does not depend on verify-tag-signature, so the two run in "
+            "parallel and the changelog PR opens for a release the check is about to reject"
+        )
+
+    def test_the_signature_check_rejects_a_signature_it_cannot_verify(self, copie):
+        """The check reads a verification verdict, not the presence of a PGP block.
+
+        A tag signed with a key nobody can look up, or with a corrupted signature,
+        still contains `BEGIN PGP SIGNATURE`. A grep for that block therefore passes on
+        exactly the input the check exists to reject, which would make this another
+        control that reports success without measuring anything. Assert on the
+        mechanism, because the difference between the two implementations is invisible
+        in a passing run.
+        """
+        import yaml
+
+        result = copie.copy(extra_answers={"include_actions": True})
+        assert result.exit_code == 0
+
+        workflow_path = result.project_dir / ".github" / "workflows" / "changelog.yml"
+        workflow = yaml.safe_load(workflow_path.read_text(encoding="utf-8"))
+        script = "\n".join(
+            str(step.get("run", "")) for step in (workflow["jobs"]["verify-tag-signature"].get("steps") or [])
+        )
+
+        assert script.strip(), "the verify-tag-signature job runs no script at all"
+        assert ".verification.verified" in script, (
+            "the signature check does not read the forge's verification verdict; a check that "
+            "greps the tag body for a signature block passes on a malformed or unknown-key "
+            "signature, which is the case it exists to catch"
+        )
+        assert "'.object.type" in script or ".object.type" in script, (
+            "the check does not distinguish a lightweight tag, which has no tag object to "
+            "sign and so fails for a reason the operator cannot act on from the message alone"
+        )
+        # `${{ }}` is substituted before bash parses the line, so a tag name must reach the
+        # shell as an environment variable. GITHUB_REF is the runner's own, not an expression.
+        assert "GITHUB_REF" in script, "the tag name is not read from the environment"
+
 
 class TestNightlyWorkflow:
     """Test the nightly.yml workflow."""

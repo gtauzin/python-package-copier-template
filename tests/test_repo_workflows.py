@@ -418,6 +418,33 @@ def test_this_repo_authenticates_git_cliff():
         )
 
 
+def test_this_repo_verifies_its_own_release_tag_signatures():
+    """The signature gate shipped to seven projects also guards this repo's releases.
+
+    v0.34.0 through v0.38.0 were tagged here with no signature at all while the
+    contributing guide this repo hands out said tags are signed. Shipping the check
+    downstream and not running it here would reproduce the original defect one level
+    up, which is the specific failure this whole test module exists to prevent.
+    """
+    changelog = _WORKFLOWS / "changelog.yml"
+    workflow = yaml.safe_load(changelog.read_text(encoding="utf-8"))
+    jobs = workflow.get("jobs") or {}
+
+    assert "verify-tag-signature" in jobs, (
+        f"this repo's changelog.yml has no verify-tag-signature job; jobs are {sorted(jobs)}"
+    )
+    assert "verify-tag-signature" in (jobs["changelog"].get("needs") or []), (
+        "the changelog job does not depend on verify-tag-signature, so an unsigned tag still "
+        "opens a changelog PR before anything objects"
+    )
+
+    script = "\n".join(str(step.get("run", "")) for step in (jobs["verify-tag-signature"].get("steps") or []))
+    assert ".verification.verified" in script, (
+        "the check does not read the forge's verification verdict, so a signature made with "
+        "an unknown key would pass it"
+    )
+
+
 def test_repo_coverage_upload_names_the_file_it_writes():
     """This repo's own Codecov step must name the path its coverage config produces.
 

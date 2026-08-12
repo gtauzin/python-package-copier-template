@@ -62,12 +62,36 @@ The version is determined by the Git tag - there is no version file to manually 
 
 ## The Complete Flow in Practice
 
-1. Developer pushes a **signed** version tag: `git tag -s v0.2.0 -m "Release v0.2.0" && git push origin v0.2.0` (tags are signed with [gitsign](https://github.com/sigstore/gitsign) keyless Sigstore signing, so the tag is verifiable with no long-lived GPG key; this complements the artifact-level PEP 740 attestations)
-2. `changelog.yml` generates the changelog, builds the package, creates a PR
-3. Maintainer reviews and merges the PR
-4. `publish-release.yml` creates a GitHub Release with artifacts
-5. Designated reviewer receives a notification and approves the PyPI deployment
-6. Package is published to PyPI via Trusted Publishing
+1. Developer pushes a **signed** version tag: `git tag -s v0.2.0 -m "Release v0.2.0" && git push origin v0.2.0`. The signature complements the artifact-level PEP 740 attestations: those cover what was published, and the tag signature covers what it was published from.
+2. `changelog.yml`'s `verify-tag-signature` job rejects the release if that tag is unsigned, or if its signature cannot be verified against a key registered on the tagger's account. Nothing runs before this job, because the tag push is what starts the workflow. See [Why the signature check runs where it does](#why-the-signature-check-runs-where-it-does) below.
+3. `changelog.yml` generates the changelog, builds the package, creates a PR
+4. Maintainer reviews and merges the PR
+5. `publish-release.yml` creates a GitHub Release with artifacts
+6. Designated reviewer receives a notification and approves the PyPI deployment
+7. Package is published to PyPI via Trusted Publishing
+
+## Why the signature check runs where it does
+
+A person creates the release tag, and pushing it is what starts `changelog.yml`. There
+is therefore no moment at which automation can inspect the tag before it exists: by the
+time any workflow runs, the tag is already public. Verification is detection, not
+prevention, and the honest thing is to say so rather than to imply the check stops a bad
+tag from being created.
+
+What it does buy is cost. `verify-tag-signature` is the first automated thing to see the
+tag and gates every other job through `needs`, so an unsigned tag is rejected before the
+changelog PR opens, before a GitHub Release exists and before anything reaches PyPI. The
+recovery is `git push --delete origin vX.Y.Z` and a re-tag, which spends a version number
+and nothing else.
+
+The job asks the GitHub API whether the signature verifies rather than grepping the tag
+body for a PGP block. A tag carrying a malformed signature, or one made with a key nobody
+can look up, contains the block and proves nothing, so a grep would pass on exactly the
+input the check exists to reject.
+
+Prevention would need a tag ruleset with the `required_signatures` rule, which is
+repository configuration rather than anything the template can ship. That remains open;
+this check is the half that travels with the code.
 
 ## Connections
 
