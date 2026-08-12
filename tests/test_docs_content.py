@@ -476,6 +476,25 @@ class TestMkdocsConfiguration:
         # Should include examples in navigation
         assert "example" in nav_str
 
+    def test_mkdocs_yml_navigation_lists_the_citation_page_under_reference(self, copie_session_default):
+        """Citing is a lookup, so the page belongs in Reference and must be in the nav.
+
+        The nav entry is not only placement: the Reference index resolves its own
+        contents from `<!-- SUBPAGES -->`, which reads the nav. A page missing from the
+        nav is a page nothing links to.
+        """
+        mkdocs_file = copie_session_default.project_dir / "mkdocs.yml"
+        mkdocs_data = yaml.load(mkdocs_file.read_text(encoding="utf-8"), Loader=SafeMkdocsLoader)
+
+        reference = next((section["Reference"] for section in mkdocs_data["nav"] if "Reference" in section), None)
+        assert reference is not None, "the nav has no Reference section"
+
+        titles = [title for entry in reference if isinstance(entry, dict) for title in entry]
+        assert "Citation" in titles, f"the Reference section does not list the citation page: {titles}"
+
+        pages = [page for entry in reference if isinstance(entry, dict) for page in entry.values()]
+        assert "pages/reference/citation.md" in pages, "the Citation nav entry points somewhere else"
+
     def test_mkdocs_yml_navigation_excludes_examples_when_disabled(self, copie):
         """Test that navigation excludes examples when disabled."""
         result = copie.copy(extra_answers={"include_examples": False})
