@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.42.0] - 2026-08-12
+
+This **minor release** includes 4 commits.
+
+
+### Features
+- Approve and automerge the dependency updates that CI clears  ([#302](https://github.com/stateful-y/python-package-copier/pull/302)) by @gtauzin
+- Allow retrying a failed publish against an existing tag  ([#300](https://github.com/stateful-y/python-package-copier/pull/300)) by @gtauzin
+
+### Bug Fixes
+- Verify the release tag is signed before the release proceeds  ([#301](https://github.com/stateful-y/python-package-copier/pull/301)) by @gtauzin
+
+### Documentation
+- Correct the digest rule and four stale claims  ([#299](https://github.com/stateful-y/python-package-copier/pull/299)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.41.5] - 2026-08-11
 
 This **patch release** includes 3 commits.
