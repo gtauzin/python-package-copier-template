@@ -34,12 +34,17 @@ jobs:
     # Hardcoding either one gives a workflow that passes its own syntax checks and
     # then silently never fires.
     #
-    # The `automerge` label is the authorization signal. The preset applies it on
-    # exactly the rules that also set `automerge: true`, and nowhere else, so major
-    # bumps and the grouped runtime dependency PR carry no label and stay fully
-    # manual. Applying a label needs write access, so an outside contributor cannot
-    # forge the signal, and the branch-prefix and Bot-author checks keep a human PR
-    # from ever being auto-approved.
+    # The `automerge` label is the authorization signal, applied on exactly the rules
+    # that also set `automerge: true` and nowhere else, so major bumps and the grouped
+    # runtime dependency PR carry no label and stay fully manual. Applying a label needs
+    # write access, so an outside contributor cannot forge the signal, and the
+    # branch-prefix and Bot-author checks keep a human PR from ever being auto-approved.
+    #
+    # This repository's `.github/renovate.json` is a four-line stub extending
+    # `github>stateful-y/renovate-config`, so those rules live in THAT repository and
+    # nothing here mentions them. The same is true of all seven generated repos. The
+    # rules only live in `.github/renovate.json` for a project generated without a
+    # `renovate_preset`.
     if: >-
       github.event.pull_request.user.type == 'Bot'
       && startsWith(github.event.pull_request.head.ref, 'renovate/')

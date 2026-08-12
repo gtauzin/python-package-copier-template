@@ -26,9 +26,9 @@ would get a silent empty return from it, but none exists yet.
 
 | repo | `include_examples` | what makes it different |
 |---|---|---|
-| **yohou** | True | The reference implementation and the biggest: ~79 notebooks in **7** groups (6 `examples/` subdirs plus top-level `quickstart.py`), 46 companion pages, 6 curated section pages, hand-written See Also bullets, a 35-link how-to index grouped under 8 headings. It **deleted the seed how-tos** (`contribute.md`, `troubleshooting.md`) for 36 curated ones, so any release touching those is inert here. The only repo that `select`s ruff's `D`, so it is the only one that sees a docstring defect in a template-owned file. Its docs are the quality bar — do not "normalise" them without a reason. Local drift measured 2026-07-21: `justfile` carries an `export-notebooks` recipe; `CONTRIBUTING.md` has 2 customised lines; `docs/pages/how-to/contribute.md` **does not exist** (deleted for the curated set, and confirmed NOT resurrected by update since it is not `_skip_if_exists`-listed). **Its curated how-tos correctly document prek** — `uv run prek install -f` (`contributing.md:38`, `installation.md:89`), `uv run prek run --all-files` (`contributing.md:240`), commitizen labelled as a `commit-msg` hook — **fixed in v0.28.4 (PR #110, `842eedc`).** For several rounds this cell claimed they "still document pre-commit" and agents re-flagged it as needing a PR without grepping (the copies-drift trap this file warns about, sprung on this file itself). Verify by content: `grep -rn pre-commit docs/` finds only the `.pre-commit-config.yaml` filename and immutable CHANGELOG history, no stale commands. **Bespoke setup-uv workflows copier does not own:** `examples.yml`, `regenerate-datasets.yml`, `export-notebooks.yml`, `docs-deploy.yml` each run `astral-sh/setup-uv` — a CI-touching release must audit by content (not by the six templated filenames) and hand-pin/annotate them. `docs-deploy.yml` was missing from this cell until the v0.31.1 fan-out found it — **four** bespoke files, not three. The v0.29.6 uv-version-pin fan-out hand-pinned the setup-uv steps; the v0.31.1 Renovate fan-out added a `# renovate:` annotation above each bespoke setup-uv pin AND pinned `examples.yml`'s previously-bare `uv tool install nox` to `==2026.7.11` (a deliberate behavioural change, flagged for review) so the customManager can bump it. |
-| yohou-nixtla | True | 2 notebooks. Its logos were destroyed by a past update and restored from `f166f46`; **never touch `docs/assets/`**. `_base.py` is `_`-prefixed, so `BaseNixtlaForecaster` reached the API only once `_get_root_members` landed (17→18 rows). Answers cap at `max_python_version: 3.13` — scipy ships no cp314 wheel. Known-flagged: inert `environments` key under `[tool.coverage.report]`, `lightning_logs` xdist race, `/en/stable/` 404 (no stable release yet). |
-| yohou-optuna | True | 5 notebooks, all flat. Carries **16 custom skills / 37 files** under `.claude/skills/` that must stay tracked (this cell said 15/36 until the v0.41.1 round measured it; the extra is `polish-changelog`). (`plot_model_comparison_bar` is **yohou's**, not this repo's — an earlier version of this table said otherwise.) |
+| **yohou** | True | The reference implementation and the biggest: ~79 notebooks in **7** groups (6 `examples/` subdirs plus top-level `quickstart.py`), 46 companion pages, 6 curated section pages, hand-written See Also bullets, a 35-link how-to index grouped under 8 headings. It **deleted the seed how-tos** (`contribute.md`, `troubleshooting.md`) for 36 curated ones, so any release touching those is inert here. The only repo that `select`s ruff's `D`, so it is the only one that sees a docstring defect in a template-owned file. Its docs are the quality bar — do not "normalise" them without a reason. Local drift measured 2026-07-21: `justfile` carries an `export-notebooks` recipe; `CONTRIBUTING.md` has 2 customised lines; `docs/pages/how-to/contribute.md` **does not exist** (deleted for the curated set, and confirmed NOT resurrected by update since it is not `_skip_if_exists`-listed). **Its curated how-tos correctly document prek** — `uv run prek install -f` (`contributing.md:38`, `installation.md:89`), `uv run prek run --all-files` (`contributing.md:240`), commitizen labelled as a `commit-msg` hook — **fixed in v0.28.4 (PR #110, `842eedc`).** For several rounds this cell claimed they "still document pre-commit" and agents re-flagged it as needing a PR without grepping (the copies-drift trap this file warns about, sprung on this file itself). Verify by content: `grep -rn pre-commit docs/` finds only the `.pre-commit-config.yaml` filename and immutable CHANGELOG history, no stale commands. **Bespoke setup-uv workflows copier does not own:** `examples.yml`, `regenerate-datasets.yml`, `export-notebooks.yml`, `docs-deploy.yml` each run `astral-sh/setup-uv` — a CI-touching release must audit by content (not by the six templated filenames) and hand-pin/annotate them. `docs-deploy.yml` was missing from this cell until the v0.31.1 fan-out found it — **four** bespoke files, not three. The v0.29.6 uv-version-pin fan-out hand-pinned the setup-uv steps; the v0.31.1 Renovate fan-out added a `# renovate:` annotation above each bespoke setup-uv pin AND pinned `examples.yml`'s previously-bare `uv tool install nox` to `==2026.7.11` (a deliberate behavioural change, flagged for review) so the customManager can bump it. **`changelog.yml` carries a local `env: GIT_LFS_SKIP_SMUDGE: 1` on the `changelog` job plus a 3-line `# yohou-local:` comment — 5 of its 17 drifted lines, the rest being the usual digest and `version:` pairs. It sits between `runs-on:` and `steps:`, which is the trailing context of any hunk the template adds to that job, so it is the single most fragile local delta in a release touching `changelog.yml`.** It survived v0.42.0 intact; hand-check it, never bulk-accept. Same hazard shape as the `nightly.yml` `test_docstrings` parametrization below, which this repo has already lost once to hunk-bundling. **Its curated how-to is `contributing.md`, not the template's `contribute.md`** — so a release fixing the templated page is inert here, which is how yohou's release instructions still said `git tag` (unsigned) after v0.42.0 shipped a signature gate that would have blocked its next release. Fixed in the v0.42.0 fan-out. |
+| yohou-nixtla | True | 2 notebooks. Its logos were destroyed by a past update and restored from `f166f46`; **never touch `docs/assets/`**. That restore was only half a restore, and the consequence went unrecorded until v0.42.0: `logo.png` and `favicon.png` are still byte-identical to the **template's generic placeholders**, only `logo_dark.png`/`logo_light.png` are this repo's own — and `_skip_if_exists` now **freezes** the two placeholders that way, so no future update will ever replace them. Real branding there needs a human. `_base.py` is `_`-prefixed, so `BaseNixtlaForecaster` reached the API only once `_get_root_members` landed (17→18 rows). Answers cap at `max_python_version: 3.13` — scipy ships no cp314 wheel. Known-flagged: inert `environments` key under `[tool.coverage.report]`, `lightning_logs` xdist race, `/en/stable/` 404 (no stable release yet). |
+| yohou-optuna | True | 5 notebooks, all flat. Carries **16 custom skills / 37 files** under `.claude/skills/` that must stay tracked (this cell said 15/36 until the v0.41.1 round measured it; the extra is `polish-changelog`). (`plot_model_comparison_bar` **does not exist anywhere** — not here, and not in `yohou` either: it is absent from the installed `yohou` source tree. This cell has now been wrong about it twice, each fix confidently reassigning an owner instead of checking whether the symbol exists. Its only traces are two stale lines in this repo's mirrored `create-yohou-plot` skill, which also names `plot_residual_time_series` and `plot_score_per_horizon` against real exports `plot_residuals` / `plot_score_per_step` / `plot_score_summary`. Repo-owned staleness, not a fan-out concern; do not reassign it a third time.) |
 | sklearn-wrap | True | 9 flat notebooks. `--extra config` is needed for **`ty`** and for **notebook execution during export**, but *not* for rendering: `check_docs` passes with pydantic absent because mkdocstrings uses griffe's static analysis. So `build_docs`/`build_steps` fail locally on `examples/yaml_config.py` while CI and RTD stay green — RTD's recipe passes the extra, the nox sessions never got it (`test_docstrings` already does, so the pattern exists locally). Pre-existing, verified identical on the prior tag. An earlier version of this table said the extra was "not for the docs build", full stop; that is wrong for the export leg. `test_docstrings` has **no matrix parametrization** here — a single ubuntu job on 3.11 — so do not go looking for one to preserve. Went RTD-red once from the v0.22.0 gallery bug. |
 | sklearn-optuna | True | 9 flat notebooks. **See Also: 13 sections, 32 entries, 0 unlinked** — that is the whole useful fact. Do *not* re-add a breakdown of where those links point: this cell has carried three mutually contradictory versions (dependency-inventory resolution; 21 external to `docs.python.org`; 21 internal + 9 API + 2 external), each written confidently from a single agent's measurement, and a spot-check of a live page found 3 links all internal. Nothing in a fan-out turns on the answer. Carries `Sampler`/`Storage`, whose only member is `__init__` — filtered out — which makes it the fleet's test case for anything sensitive to *rendered* vs declared members. |
 | **kedro-dagster** | **False** | No notebooks. Largest docstring surface (~126 See Also links). `docstring_options: {warn_unknown_params: false}` is **noise-critical, not CI-critical** — measured in the v0.41.2 round by a clean A/B in an isolated worktree, one tree, one nox env, only the key differing: **80** griffe warnings with it on, **0** with it off, and **exit 0, "No issues found", 98 pages either way**. This cell said 77 warnings and *fails the build*; both halves were wrong. Keep the key at `false` regardless — 80 lines of log noise is reason enough — but the real fix, if anyone wants it gone, is the pydantic docstrings, not the key. Snippets `base_path` must stay `[docs, .]`: it includes repo-root-relative `src/kedro_dagster/templates/*`. `datasets/` re-export layout. Renamed its page to **`troubleshoot.md`**, and keeps a `test-versions` job (with its `needs:`) that copier has deleted before — it lives in **`nightly.yml`**, as a `uses:` call to a dedicated **`tests-versions.yml`**, *not* in `tests.yml`; an agent grepping `tests.yml` per this file's old phrasing found nothing and briefly thought it had hit that exact loss. **No line number is recorded here on purpose**: it has been wrong three times running (:45, then :54, then :61 after v0.41.5 added lines above it), so locate it by name. **It is a reusable-workflow call with ZERO inline `steps`** — a job-list check that filters on step count drops it silently, which is the exact loss shape this cell exists to prevent. Its `test-compat` is also hardcoded `if: False`, so that check is permanently vacuous. Its curated `pages/reference/datasets.md` is the fleet's only multi-object `:::` page, which makes it the sole real test for anything about duplicate ids or per-object section stripping. Its `tests-versions.yml` `astral-sh/setup-uv` step is bespoke (copier does not own it) — a CI-touching release must hand-pin it; done in the v0.29.6 uv-version fan-out. |
@@ -219,6 +219,19 @@ earlier release did leave both copies, so **verify which happened** rather than 
 - It **overwrites binaries every run**, regardless of diff — no conflict, no `.rej`, only a
   `Bin NNNN -> NNNN` line. This ate project logos for months. Only `_skip_if_exists`
   stops it; "Tier 3" is a convention for whoever *resolves* an update and is never reached.
+
+    **`docs/assets/made_by_stateful-y.png` is deliberately NOT skip-listed, and reporting that
+    as a gap is a known false positive.** The v0.42.0 fan-out flagged it: the skip list names
+    four PNGs, the template ships five, and copier does overwrite the fifth on every run. Every
+    word of that is true. The conclusion was backwards — it is the **org wordmark**, the
+    template's asset rather than the project's, and skip-listing it would strand every project
+    on whichever mark it was generated with. `test_project_branding_survives_a_second_template_run`
+    has asserted exactly that, with the reason in a comment, since the logo fix landed.
+    This is §5's "a deliberately narrow behaviour looks exactly like an incomplete fix", and it
+    got as far as a written patch before the test's comment caught it. `copier.yml` now states
+    the exclusion inline, and `test_every_shipped_binary_is_classified` requires each shipped
+    binary to be either skip-listed or explicitly named template-managed, so a **new** binary
+    still fails loudly while this one stops being re-reported.
 - **The generated `tests/conftest.py` is effectively FROZEN. Any edit to it, including a
   comment, can rewrite a project's own imports.** Measured in the v0.41.4 pre-flight
   against real clones: inserting a comment block between the imports and the settings
@@ -406,6 +419,20 @@ checked.
 - `__gallery__` assigned inside an `@app.cell` is invisible — `ast.iter_child_nodes` only
   sees module level. Both of yohou-nixtla's notebooks were in no gallery at all, silently.
 
+**A GitHub SETTING is not a file, and a fan-out that only reads files cannot see it.** v0.42.0
+shipped `renovate-automerge.yml`, whose approve step needs
+`can_approve_pull_request_reviews`. That was set at the **org** level and three of the eight repos
+carried an explicit repo-level `false` that the org value does **not** override
+(python-package-copier, kedro-dagster, yohou-nixtla). The workflow merged green in all eight, its
+guard correctly declined on every human PR so the approve step never executed, and the 403 would
+have surfaced days later on the first real Renovate PR — in the repo with the largest backlog. One
+agent read the setting and found two; re-measuring all eight found three.
+
+So: **when a release depends on a setting rather than a file, read that setting per repo and put the
+values in the report.** An org-level value is evidence about the org default and nothing else. This
+fleet has now been bitten by this class twice — see also the Dependabot dependency-graph blindness,
+where the feature was "on" org-wide and 0 manifests were actually being scanned.
+
 **A workflow with no `pull_request` trigger is verified by NOTHING in a fan-out.**
 `nightly.yml` runs on `schedule` and `workflow_dispatch` only, so every green tick on every
 PR proves its YAML parses, not that its steps work. v0.41.4 changed its Codecov step and
@@ -415,6 +442,25 @@ have said nothing about it. Two agents flagged this rather than letting the gree
 and gives real evidence in minutes; for v0.41.4 the log showed `CC_DISABLE_SEARCH: true`,
 `CC_FILES: .../.artifacts/coverage.xml`, `Found 1 coverage files to report`. Do this
 whenever a release touches a schedule-only workflow.
+
+**But read the `on:` block; do not infer triggers from what appears in `gh pr checks`.** The
+v0.42.0 brief told all seven agents that neither `changelog.yml` nor `publish-release.yml` has a
+`pull_request` trigger. `publish-release.yml` has `pull_request: types: [closed]` on `main`. The
+conclusion drawn from the false premise happened to be true — it never fires on `opened` or
+`synchronize`, so it is absent from PR checks and unexercised by them — which is why six agents
+repeated it without tripping over it. A wrong reason that yields a right answer is the brief error
+that survives longest.
+
+The consequence the false premise hid: **merging each fan-out PR fires that workflow.** It is
+harmless here only because its `build` job is gated
+`merged == true && contains(labels, 'changelog')` and a fan-out PR has no `changelog` label. Had
+that `if:` been written slightly differently, seven merges would have cut seven releases. Two
+workflows in this fleet can publish; check what a merge triggers, not just what a PR runs.
+
+Corollary for the two release workflows specifically: **never dispatch `publish-release.yml` to
+"verify" it.** It creates a GitHub Release and can reach PyPI. `changelog.yml` fires only on a
+`v*.*.*` tag push, so exercising it means cutting a real release. Both are static-verification-only
+in a fan-out, and the honest report says so.
 
 **A pre-flight predicts destruction, not conflicts.** Running the update against clones of
 all seven repos before tagging v0.41.4 correctly established that no conftest was harmed.
@@ -448,13 +494,30 @@ only after merge. Compare open-to-open.
 - **`gh pr checks` also exits NON-ZERO while checks are still pending.** A poll loop that
   guards on exit status breaks out immediately and reports the partial state as final; mine
   did, on this release. Guard on the *output* (`grep -q pending`), not the exit code.
-- **`Compat tests` is hardcoded `if: false` in at least FIVE of the seven repos** (yohou-optuna,
-  yohou-nixtla, sklearn-optuna, sklearn-wrap, kedro-dagster — `# disabled until pins are
-  defined`), and the `ci-passed` roll-up treats `skipped` as acceptable. So its green covers a
-  job that never runs, in most of the fleet. Five agents reported the `skipping` independently
-  in one round, each having to establish it was pre-existing rather than a draft artifact.
-  Record it here so the next round does not re-derive it: it is NOT draft-gating, and it is
-  not something a fan-out introduced.
+- **A workflow whose job-level `if` evaluates false still registers a check, as `skipping`.**
+  Since v0.42.0 every repo ships `renovate-automerge.yml`, which triggers on `pull_request` and
+  guards on Bot-author + `renovate/` branch + the `automerge` label. On any human PR that guard is
+  correctly false, so **every fan-out PR from now on carries an extra
+  `Approve and enable automerge  skipping` line**. Three agents flagged it in one round because the
+  brief told them to expect the workflow to be *absent* from the check list; an agent hunting for a
+  missing check finds a present one and has to work out which reading is wrong.
+  It also **inflates the "how many checks RAN" tally** this file asks for two bullets down, which is
+  the third hole in that number alongside `Compat tests` and `Validate Commit Message`. A `skipping`
+  line here is the guard working, not firing.
+- **`Compat tests` is hardcoded `if: false` in SIX of the seven repos** (yohou-optuna,
+  yohou-nixtla, sklearn-optuna, sklearn-wrap, kedro-dagster, **kedro-azureml-pipeline** —
+  `# disabled until pins are defined`), and the `ci-passed` roll-up treats `skipped` as
+  acceptable. So its green covers a job that never runs in all but one repo. Five agents
+  reported the `skipping` independently in one round, each having to establish it was
+  pre-existing rather than a draft artifact. Record it here so the next round does not
+  re-derive it: it is NOT draft-gating, and it is not something a fan-out introduced.
+
+    **The count was "at least FIVE" and the list omitted kedro-azureml-pipeline; it is six.**
+    Settled by reading all seven `tests.yml` files rather than by taking either agent's word:
+    the kedro-azureml agent said six and was right, and yohou's said "one of the two repos
+    where it is not `if: false`" and was wrong. **yohou is the only one that runs it**, and it
+    ran and passed there on v0.42.0. A hedge like "at least five" reads as a fleet-wide fact
+    and is exactly what stops the next round from checking.
 - **`Validate Commit Message` does NOT skip on a multi-commit PR — it PASSES vacuously.**
   The `if: github.event.pull_request.commits == 1` is at **step** level, not job level, so
   the job reports `success` with all its real steps skipped. In `gh pr checks` that is

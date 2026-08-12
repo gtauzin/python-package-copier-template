@@ -4138,6 +4138,72 @@ def test_seed_pages_every_project_rewrites_are_never_redelivered(copie_session_d
         assert (copie_session_default.project_dir / page).is_file(), f"{page} is not seeded for a new project"
 
 
+# Binaries the template ships and deliberately keeps overwriting. Skip-listing one of
+# these would strand every project on the version it was generated with, so their
+# absence from `_skip_if_exists` is a decision, not an oversight.
+TEMPLATE_MANAGED_BINARIES = {
+    "docs/assets/made_by_stateful-y.png": (
+        "the org wordmark is the template's asset, not the project's; projects should "
+        "track the current mark rather than freeze on their generation-time one"
+    ),
+}
+
+
+def test_every_shipped_binary_is_classified():
+    """Each binary the template ships is either skip-listed or named template-managed.
+
+    Copier rewrites a binary on **every** run regardless of diff, with no conflict, no
+    `.rej` and nothing in its output but a `Bin NNNN -> NNNN` line. `_skip_if_exists` is
+    the only thing that stops it, so for a project-owned asset, absence from that list
+    means artwork waiting to be destroyed.
+
+    But "every binary must be skip-listed" is the wrong invariant, and asserting it would
+    do damage. `made_by_stateful-y.png` is the org wordmark: the template *should* keep
+    overwriting it, or a project generated two years ago displays a two-year-old mark
+    forever. The v0.42.0 fan-out reported its absence from the skip list as a latent bug,
+    having correctly measured that copier overwrites it every run. The measurement was
+    right and the conclusion was backwards, which is why this test encodes the
+    distinction rather than the count.
+
+    So the real invariant is that every shipped binary is **classified**: project-owned
+    and skip-listed, or template-managed and named above with a reason. A newly added
+    binary belongs to neither set and fails here, which is the case the hand-maintained
+    list could not catch.
+    """
+    import yaml
+
+    root = Path(__file__).parent.parent
+    copier_yml = yaml.safe_load((root / "copier.yml").read_text(encoding="utf-8"))
+    skipped = set(copier_yml.get("_skip_if_exists") or [])
+
+    template_dir = root / "template"
+    binaries = []
+    for path in sorted(template_dir.rglob("*")):
+        if not path.is_file():
+            continue
+        # Detect by content, not by extension: a new asset type would slip past an
+        # allowlist of suffixes the same way a new PNG slipped past a path list.
+        if b"\0" not in path.read_bytes()[:8192]:
+            continue
+        binaries.append(path.relative_to(template_dir).as_posix())
+
+    assert binaries, (
+        "found no binaries under template/, so this test proves nothing. Either the "
+        "null-byte detection is broken or the assets moved; fix the check, do not delete it"
+    )
+
+    unclassified = [b for b in binaries if b not in skipped and b not in TEMPLATE_MANAGED_BINARIES]
+    assert not unclassified, (
+        "these binaries are neither in _skip_if_exists nor listed as template-managed, so "
+        "copier rewrites them on every run with no conflict and no .rej, and nothing "
+        f"records whether that is intended: {unclassified}. Classify each one, with a reason."
+    )
+
+    # The two sets must stay disjoint, or the classification says nothing.
+    both = sorted(set(TEMPLATE_MANAGED_BINARIES) & skipped)
+    assert not both, f"binaries claimed as template-managed but also skip-listed: {both}"
+
+
 def test_companion_marker_that_resolves_to_nothing_warns(copie_session_default):
     """A well-formed COMPANION_NOTEBOOKS naming no notebook is reported.
 
