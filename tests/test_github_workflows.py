@@ -183,6 +183,62 @@ class TestPublishWorkflow:
             "finalize-release carries its own environment gate, which would strand approved releases as drafts"
         )
 
+    def test_a_failed_publish_can_be_retried_without_burning_a_version(self, copie):
+        """A publish that fails for an external reason can be re-run against the same tag.
+
+        `pull_request: closed` fires once and is then spent. When yohou's v0.1.0-alpha.12
+        upload failed because the pinned publish action bundled a twine too old for the
+        metadata hatchling emits -- nothing to do with the release -- there was no way to
+        retry: re-running the job reuses the old workflow file, and the trigger cannot be
+        made to fire again. The recovery was to delete the tag, close the changelog PR and
+        recut, which rewrites the changelog and spends a version number on a fault the
+        release never had.
+
+        So this asserts the retry path end to end, because each piece is useless alone:
+        the trigger exists and takes a tag; the build job admits a dispatch as well as a
+        merged PR; and `create-release` tolerates the release the failed attempt left
+        behind. That last one is the easiest to omit and the one that would make the
+        feature fail in exactly the case it was built for -- a failed upload leaves its
+        draft in place, and `gh release create` exits non-zero on an existing tag.
+        """
+        import yaml
+
+        result = copie.copy(extra_answers={"include_actions": True})
+        assert result.exit_code == 0
+
+        workflow_path = result.project_dir / ".github" / "workflows" / "publish-release.yml"
+        content = workflow_path.read_text(encoding="utf-8")
+        parsed = yaml.safe_load(content)
+        # PyYAML resolves a bare `on:` key to the boolean True.
+        triggers = parsed.get("on", parsed.get(True))
+
+        assert "workflow_dispatch" in triggers, (
+            "no workflow_dispatch trigger, so a publish that fails for an external reason "
+            "can only be retried by deleting the tag and cutting a new version"
+        )
+        assert "version" in (triggers["workflow_dispatch"]["inputs"] or {}), (
+            "the dispatch takes no version input, so it cannot say which existing tag to publish"
+        )
+
+        build_if = parsed["jobs"]["build"]["if"]
+        assert "workflow_dispatch" in build_if, (
+            f"the build job's condition does not admit a dispatch ({build_if!r}), so the "
+            "trigger fires and every job is skipped"
+        )
+        assert "changelog" in build_if, "the dispatch path dropped the changelog-label gate for merged PRs"
+
+        assert "gh release view" in content, (
+            "create-release does not check whether the release already exists, so a retry "
+            "dies on `gh release create` against the draft the failed attempt left behind"
+        )
+        assert "--clobber" in content, "a retry cannot replace the artifacts of the attempt it is retrying"
+
+        # The retry must not become a way around the human checkpoint.
+        gated = [name for name, body in parsed["jobs"].items() if (body.get("environment") or {})]
+        assert gated == ["pypi-publish"], (
+            f"the dispatch path changed which jobs are gated ({gated}), so a retry could publish unreviewed"
+        )
+
     def test_changelog_generation_is_authenticated(self, copie):
         """git-cliff's GitHub API calls carry a token.
 
