@@ -742,6 +742,28 @@ graph LR
     - Only commits following conventional format are included
     - Breaking changes are highlighted
 
+### If the publish fails
+
+A publish can fail for reasons that have nothing to do with the release: an upstream
+action shipping a broken dependency, a registry outage, a revoked token. The merge that
+started it cannot be replayed, and re-running the failed job reuses the old workflow
+file, so fixing the cause on `main` is not enough on its own.
+
+Fix the cause, then re-run the pipeline against the **same tag**:
+
+```bash
+gh workflow run publish-release.yml -f version=v0.2.0
+```
+
+The retry rebuilds from the tag, refreshes the existing GitHub Release rather than
+failing on it, and still stops at the `pypi` approval gate. Do **not** delete the tag and
+cut a new version to work around a failed publish: that rewrites the changelog and spends
+a version number on a fault the release never had.
+
+One case this does not cover: if the previous attempt uploaded some files to PyPI before
+failing, the retry stops on the duplicates, because PyPI does not accept a re-upload of a
+file it already has. Bump to a new version for that.
+
 ### Version Numbering
 
 This project uses [Semantic Versioning](https://semver.org/):
