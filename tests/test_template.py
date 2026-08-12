@@ -875,6 +875,77 @@ def test_renovate_config_extends_preset_when_set(copie):
     assert "packageRules" not in config, "a preset subscription should not inline packageRules"
 
 
+def test_renovate_automerge_label_is_the_only_automerge_signal(copie_session_default):
+    """The `automerge` label sits on exactly the rules that set `automerge: true`.
+
+    renovate-automerge.yml approves a bot pull request only when it carries this label,
+    so the label is the authorization boundary and not a cosmetic tag. The two halves
+    fail in opposite directions and both fail quietly: a rule with `automerge: true` and
+    no label produces a pull request Renovate wants merged that nothing ever approves,
+    and a rule with the label but no `automerge: true` pre-approves an update nobody
+    chose to automate.
+    """
+    config = json.loads((copie_session_default.project_dir / ".github" / "renovate.json").read_text(encoding="utf-8"))
+    rules = config["packageRules"]
+
+    labelled = {i for i, rule in enumerate(rules) if "automerge" in rule.get("addLabels", [])}
+    automerged = {i for i, rule in enumerate(rules) if rule.get("automerge") is True}
+
+    assert automerged, "no rule enables automerge, so every dependency update needs a human merge"
+    assert labelled == automerged, (
+        f"rules setting automerge: {sorted(automerged)}, rules adding the label: {sorted(labelled)}. "
+        "The two must be the same set, or the approve-then-merge chain breaks with no error."
+    )
+
+
+def test_renovate_automerge_scope_excludes_majors_and_runtime_dependencies(copie_session_default):
+    """Nothing automerges a major, and the grouped runtime dependency PR never does.
+
+    A major can change an action's inputs or a library's API, and the `pep621` group is a
+    single pull request mixing runtime and dev dependencies, so there is no safe half of
+    it to merge unattended.
+    """
+    config = json.loads((copie_session_default.project_dir / ".github" / "renovate.json").read_text(encoding="utf-8"))
+
+    for rule in config["packageRules"]:
+        if rule.get("automerge") is not True:
+            continue
+        update_types = rule.get("matchUpdateTypes")
+        assert update_types, f"automerge rule with no matchUpdateTypes matches majors too: {rule!r}"
+        assert "major" not in update_types, f"automerge rule accepts majors: {rule!r}"
+        assert "pep621" not in rule.get("matchManagers", []), (
+            f"automerge rule covers the grouped runtime dependency PR: {rule!r}"
+        )
+
+
+def test_renovate_automerge_workflow_does_not_hardcode_a_bot_login(copie_session_default):
+    """The automerge guard keys on the label, never on a bot account name.
+
+    The account that opens the pull request is named after the GitHub App's slug, which
+    differs per installation: a self-hosted App is `<app-slug>[bot]` while the hosted
+    Mend app is `renovate[bot]`. A guard comparing against either literal is valid YAML
+    that evaluates false forever, so the workflow runs, reports success, and approves
+    nothing.
+    """
+    workflow = copie_session_default.project_dir / ".github" / "workflows" / "renovate-automerge.yml"
+    assert workflow.is_file(), "renovate-automerge.yml not generated"
+    text = workflow.read_text(encoding="utf-8")
+
+    guard = text.split("runs-on:")[0]
+    assert "[bot]'" not in guard and '[bot]"' not in guard, (
+        "the automerge guard compares against a literal bot login, which differs per "
+        "GitHub App installation and would make the guard silently always false"
+    )
+    assert "contains(github.event.pull_request.labels.*.name, 'automerge')" in guard, (
+        "the automerge guard does not require the `automerge` label, so it would approve "
+        "every bot pull request including majors"
+    )
+    assert "pull_request_target" not in text, (
+        "pull_request_target grants write access to code from forks; Renovate branches are "
+        "in-repo, so the plain pull_request trigger is both sufficient and safe"
+    )
+
+
 def test_workflows_pin_uv_nox_and_git_cliff(copie_session_default):
     """uv, nox and git-cliff are pinned to exact versions, not floating "latest".
 
