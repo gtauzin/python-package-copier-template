@@ -32,6 +32,16 @@ _skip_if_exists:
   - "docs/assets/logo_dark.png"
   - "docs/assets/logo_light.png"
   - "docs/assets/favicon.png"
+  # `docs/assets/made_by_stateful-y.png` is deliberately NOT here. It is the org
+  # wordmark, which is the template's asset rather than the project's, so it stays
+  # template-managed: skip-listing it would strand every project on whichever mark
+  # it happened to be generated with. The v0.42.0 fan-out flagged its absence as a
+  # gap in this list, having correctly observed that copier overwrites it on every
+  # run -- which is true, and is the intended behaviour here. See
+  # test_every_shipped_binary_is_classified, which requires each shipped binary to
+  # be either skip-listed or explicitly named as template-managed, so that "not in
+  # this list" is a recorded decision rather than an omission.
+  #
   # Seed pages, and the same shape of problem as the logos above. Every real
   # project rewrites these two wholesale -- the template's `hello("World")` tour
   # and placeholder landing page survive nowhere. The template then keeps trying
