@@ -212,11 +212,16 @@ def test_no_untrusted_expression_reaches_a_shell(copie):
 
 
 def test_release_tag_is_parsed_from_the_environment(copie):
-    """The release job reads the PR title from `env:`, and never re-interpolates it.
+    """Every source of the release tag reaches the job via `env:`, never re-interpolated.
 
     The generic scan above would stay green if someone "fixed" this by adding an `env:`
     block and leaving the `${{ }}` in the script, or by dropping the title parsing
     entirely. This pins the specific shape the release path depends on.
+
+    Both sources are covered. `workflow_dispatch.inputs.version` is if anything the more
+    exposed of the two: a PR title has to survive review to reach the merge that fires
+    the workflow, while a dispatch input is typed straight into a job that holds
+    `contents: write` and gates the PyPI upload.
     """
     result = copie.copy(extra_answers={"include_actions": True})
     publish = _read(result.project_dir, ".github/workflows/publish-release.yml")
@@ -224,8 +229,35 @@ def test_release_tag_is_parsed_from_the_environment(copie):
     assert "PR_TITLE: ${{ github.event.pull_request.title }}" in publish, (
         "the PR title no longer reaches the release job through the environment"
     )
+    assert "INPUT_VERSION: ${{ inputs.version }}" in publish, (
+        "the workflow_dispatch version no longer reaches the release job through the environment"
+    )
     assert 'PR_TITLE="${{' not in publish, "the PR title is still interpolated into the shell"
-    assert '"$PR_TITLE"' in publish, "nothing reads the PR title, so the version can no longer be found"
+    assert 'INPUT_VERSION="${{' not in publish, "the dispatch input is still interpolated into the shell"
+    # Both are read through parameter expansion (`${VAR:-default}`), so match that form
+    # rather than a bare `$VAR`, which the script never contains.
+    assert "$PR_TITLE" in publish, "nothing reads the PR title, so the version can no longer be found"
+    assert "${INPUT_VERSION" in publish, "nothing reads the dispatch input, so a retry cannot name its tag"
+
+
+def test_release_notes_are_not_pasted_into_the_shell(copie):
+    """The release notes reach `gh release` as data, not as a substituted expression.
+
+    The notes are built by git-cliff from commit subjects, so their content is decided
+    by whoever wrote the commits -- the same untrusted-input shape as the PR title, and
+    in the same job, which holds `contents: write` and precedes the PyPI upload. Passing
+    them as `--notes "${{ steps.release_notes.outputs.notes }}"` substitutes them into
+    the script before bash parses it, so a subject carrying a quote and a semicolon runs
+    as commands. Passing them through `env:` makes them data.
+    """
+    result = copie.copy(extra_answers={"include_actions": True})
+    publish = _read(result.project_dir, ".github/workflows/publish-release.yml")
+
+    assert "RELEASE_NOTES: ${{ steps.release_notes.outputs.notes }}" in publish, (
+        "the release notes no longer reach the release step through the environment"
+    )
+    assert '--notes "${{' not in publish, "the release notes are still interpolated into the shell"
+    assert '--notes "$RELEASE_NOTES"' in publish, "nothing passes the notes to gh release"
 
 
 def test_publish_action_is_not_a_branch_ref(copie):
