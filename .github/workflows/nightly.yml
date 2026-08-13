@@ -50,7 +50,7 @@ jobs:
       # failures this job exists to catch.
       - name: Run the full test suite
         # renovate: datasource=pypi depName=nox
-        run: uvx nox@2026.7.11 -s test-${{ matrix.python-version }}
+        run: uvx nox@2026.8.10 -s test-${{ matrix.python-version }}
 
   create-issue-on-failure:
     needs: test
