@@ -947,6 +947,70 @@ def test_renovate_automerge_workflow_does_not_hardcode_a_bot_login(copie_session
     )
 
 
+def test_drain_workflow_does_not_update_branches_with_github_token(copie_session_default):
+    """The queue drainer mints an App token, and never falls back to `GITHUB_TOKEN`.
+
+    This is the whole reason the workflow has a token step at all, and it looks exactly
+    like boilerplate worth deleting. A branch updated using the default `GITHUB_TOKEN`
+    does **not** trigger a new workflow run: GitHub suppresses that to prevent recursion.
+    The updated head commit would then carry none of the required checks, they would sit
+    "Expected -- waiting for status to be reported" forever, and auto-merge would never
+    fire. The pull request would look freshly updated and be more stuck than before, with
+    nothing failing anywhere to say so.
+
+    So a "simplification" to `secrets.GITHUB_TOKEN` produces a workflow that runs, reports
+    success, updates the branch, and deadlocks the queue it exists to drain.
+    """
+    workflow = copie_session_default.project_dir / ".github" / "workflows" / "drain-automerge-queue.yml"
+    assert workflow.is_file(), "drain-automerge-queue.yml not generated"
+    text = workflow.read_text(encoding="utf-8")
+
+    assert "create-github-app-token" in text, (
+        "the drain workflow does not mint an App token; a GITHUB_TOKEN branch update "
+        "triggers no checks and deadlocks the pull request it just updated"
+    )
+    assert "secrets.GITHUB_TOKEN" not in text, (
+        "the drain workflow uses GITHUB_TOKEN somewhere; a branch updated with it reports "
+        "no checks, so auto-merge can never fire"
+    )
+    assert "steps.app-token.outputs.token" in text, (
+        "the App token is minted but not used; the API calls must run as the App"
+    )
+
+
+def test_drain_workflow_advances_exactly_one_pull_request(copie_session_default):
+    """The drainer updates one PR per push, not every PR that is behind.
+
+    Updating them all is the obvious implementation and it wastes most of the work: only
+    one can merge, and that merge puts every other branch behind again, so the remaining
+    CI runs are thrown away. One per push is what makes the queue self-draining at a cost
+    of one CI run per merge, because each merge pushes the default branch and starts the
+    next round.
+    """
+    import yaml
+
+    workflow = copie_session_default.project_dir / ".github" / "workflows" / "drain-automerge-queue.yml"
+    text = workflow.read_text(encoding="utf-8")
+
+    body = yaml.safe_load(text)
+    triggers = body.get("on", body.get(True))
+    assert "push" in triggers, "the drainer must run on push to the default branch"
+    assert "concurrency" in body, (
+        "without a concurrency group, simultaneous merges each pick a pull request and "
+        "produce the burst of branch updates this design exists to avoid"
+    )
+
+    run = body["jobs"]["advance-one"]["steps"][-1]["run"]
+    assert "exit 0" in run, "the loop must stop after advancing one pull request"
+    # The guard must be the same three conditions the approve workflow uses, or the
+    # drainer would advance pull requests nothing has authorised for automerge.
+    assert '"automerge"' in run or "'automerge'" in run, (
+        "the drainer does not filter on the automerge label, so it would advance updates "
+        "that were deliberately left for manual review"
+    )
+    assert "renovate/" in run, "the drainer does not filter on the renovate/ branch prefix"
+
+
 def test_workflows_pin_uv_nox_and_git_cliff(copie_session_default):
     """uv, nox and git-cliff are pinned to exact versions, not floating "latest".
 

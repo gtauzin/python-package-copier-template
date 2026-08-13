@@ -126,6 +126,15 @@ file_gates:
       rate-limited backlog of the eight (18 items against a drain rate of two pull
       requests per week), because it is the only one whose template/ tree Renovate also
       scans.
+  drain-automerge-queue.yml:advance-one:
+    equivalent: drain-automerge-queue.yml:advance-one
+    status: matched
+    reason: >-
+      Same queue-advancing job, and this repo is subject to the same org ruleset that
+      makes it necessary: `strict_required_status_checks_policy` means auto-merge will
+      not land a branch that is behind, and GitHub does not update the branch itself.
+      Measured on the first live automerge run: 24 of 24 approved, auto-merge-enabled
+      pull requests across the fleet sat in `behind` state, none in `clean`.
 
   # --- CI: scheduled and security -----------------------------------------
   nightly.yml:test:
