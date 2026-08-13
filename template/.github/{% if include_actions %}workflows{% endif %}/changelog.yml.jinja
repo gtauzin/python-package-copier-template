@@ -131,7 +131,7 @@ jobs:
           echo "version=${TAG_NAME}" >> $GITHUB_OUTPUT
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v7.6
         with:
           # renovate: datasource=github-releases depName=astral-sh/uv
           version: "0.12.3"
