@@ -8,14 +8,14 @@ If you use {{ project_name }} in work you publish, please cite it.
 
 ## Plain text
 
-{{ author_name }}. {{ project_name }}. https://github.com/{{ github_username }}/{{ project_slug }}
+{{ author_name }}. {{ project_name }}: {{ description }}. https://github.com/{{ github_username }}/{{ project_slug }}
 
 ## BibTeX
 
 ```bibtex
 @software{{ '{' }}{{ package_name }},
   author  = "{{ author_name }}",
-  title   = "{{ '{' }}{{ project_name }}}",
+  title   = "{{ '{' }}{{ project_name }}: {{ description }}}",
   url     = "https://github.com/{{ github_username }}/{{ project_slug }}",
   license = "{{ license }}"
 }
