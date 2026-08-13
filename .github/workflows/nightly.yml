@@ -37,7 +37,7 @@ jobs:
         uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.10.0"
+          version: "0.12.3"
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
 
@@ -50,7 +50,7 @@ jobs:
       # failures this job exists to catch.
       - name: Run the full test suite
         # renovate: datasource=pypi depName=nox
-        run: uvx nox@2026.7.11 -s test-${{ matrix.python-version }}
+        run: uvx nox@2026.8.10 -s test-${{ matrix.python-version }}
 
   create-issue-on-failure:
     needs: test

@@ -947,6 +947,164 @@ def test_renovate_automerge_workflow_does_not_hardcode_a_bot_login(copie_session
     )
 
 
+def test_drain_workflow_does_not_update_branches_with_github_token(copie_session_default):
+    """The queue drainer mints an App token, and never falls back to `GITHUB_TOKEN`.
+
+    This is the whole reason the workflow has a token step at all, and it looks exactly
+    like boilerplate worth deleting. A branch updated using the default `GITHUB_TOKEN`
+    does **not** trigger a new workflow run: GitHub suppresses that to prevent recursion.
+    The updated head commit would then carry none of the required checks, they would sit
+    "Expected -- waiting for status to be reported" forever, and auto-merge would never
+    fire. The pull request would look freshly updated and be more stuck than before, with
+    nothing failing anywhere to say so.
+
+    So a "simplification" to `secrets.GITHUB_TOKEN` produces a workflow that runs, reports
+    success, updates the branch, and deadlocks the queue it exists to drain.
+    """
+    workflow = copie_session_default.project_dir / ".github" / "workflows" / "drain-automerge-queue.yml"
+    assert workflow.is_file(), "drain-automerge-queue.yml not generated"
+    text = workflow.read_text(encoding="utf-8")
+
+    assert "create-github-app-token" in text, (
+        "the drain workflow does not mint an App token; a GITHUB_TOKEN branch update "
+        "triggers no checks and deadlocks the pull request it just updated"
+    )
+    assert "secrets.GITHUB_TOKEN" not in text, (
+        "the drain workflow uses GITHUB_TOKEN somewhere; a branch updated with it reports "
+        "no checks, so auto-merge can never fire"
+    )
+    assert "steps.app-token.outputs.token" in text, (
+        "the App token is minted but not used; the API calls must run as the App"
+    )
+
+
+def test_drain_workflow_survives_a_missing_workflows_permission(copie_session_default):
+    """A missing `workflows: write` warns and exits 0; anything else still fails loudly.
+
+    Found in production, not in review. The App that updates the branch needs
+    `workflows: write` to push a diff touching `.github/workflows/*`, and in this fleet
+    that is most dependency updates -- action pins and tool versions live in the
+    workflows. Without it every such update returns:
+
+        refusing to allow a GitHub App to create or update workflow
+        `.github/workflows/nightly.yml` without `workflows` permission (HTTP 403)
+
+    That is a configuration gap, not a fault, and it recurs on *every* push until someone
+    grants the permission. Failing the run would paint the default branch red
+    indefinitely, and a permanently red main is worse than an amber one: it trains people
+    to ignore the colour, which is how a real failure gets missed.
+
+    So this one case warns and exits 0. Every other failure still exits 1, because the
+    alternative -- swallowing all errors -- is the silent green this fleet keeps getting
+    caught by. The distinction is the point of the test: verify BOTH branches exist, not
+    just that the workflow tolerates something.
+    """
+    workflow = copie_session_default.project_dir / ".github" / "workflows" / "drain-automerge-queue.yml"
+    text = workflow.read_text(encoding="utf-8")
+
+    assert "without .workflows. permission" in text, (
+        "the drain workflow does not detect the missing-workflows-permission 403, so it "
+        "will fail the run on every push until the permission is granted"
+    )
+    assert "::warning" in text, "the permission gap must surface as a warning annotation"
+    assert "::error" in text, (
+        "no ::error branch left: swallowing every failure turns this into a job that "
+        "reports success while advancing nothing"
+    )
+
+
+def test_drain_workflow_advances_exactly_one_pull_request(copie_session_default):
+    """The drainer updates one PR per push, not every PR that is behind.
+
+    Updating them all is the obvious implementation and it wastes most of the work: only
+    one can merge, and that merge puts every other branch behind again, so the remaining
+    CI runs are thrown away. One per push is what makes the queue self-draining at a cost
+    of one CI run per merge, because each merge pushes the default branch and starts the
+    next round.
+    """
+    import yaml
+
+    workflow = copie_session_default.project_dir / ".github" / "workflows" / "drain-automerge-queue.yml"
+    text = workflow.read_text(encoding="utf-8")
+
+    body = yaml.safe_load(text)
+    triggers = body.get("on", body.get(True))
+    assert "push" in triggers, "the drainer must run on push to the default branch"
+    assert "concurrency" in body, (
+        "without a concurrency group, simultaneous merges each pick a pull request and "
+        "produce the burst of branch updates this design exists to avoid"
+    )
+
+    run = body["jobs"]["advance-one"]["steps"][-1]["run"]
+    assert "exit 0" in run, "the loop must stop after advancing one pull request"
+    # The guard must be the same three conditions the approve workflow uses, or the
+    # drainer would advance pull requests nothing has authorised for automerge.
+    assert '"automerge"' in run or "'automerge'" in run, (
+        "the drainer does not filter on the automerge label, so it would advance updates "
+        "that were deliberately left for manual review"
+    )
+    assert "renovate/" in run, "the drainer does not filter on the renovate/ branch prefix"
+
+
+def test_every_uv_pin_agrees_and_carries_its_own_annotation(copie_session_default):
+    """Every uv pin in the project is the same version, and each one is annotated.
+
+    Two failures, one test, because they are the same mistake seen from either end.
+
+    The existing pin scans quantify over **workflow files**, so `.readthedocs.yml` was
+    outside the set being measured. v0.44.0 moved the uv seed to 0.12.3 in five workflows
+    and left Read the Docs installing 0.10.0, and nothing failed: CI and the docs build
+    ran different uv versions in every generated project.
+
+    Worse, that file pinned uv on two lines under a single `# renovate:` annotation.
+    Renovate's regex manager matches per annotated occurrence, so the next bump would
+    have produced `asdf install uv <new>` followed by `asdf global uv <old>` -- selecting
+    a version that was never installed, breaking the docs build fleet-wide. It was armed
+    and unfired: the annotation had simply not been reached by a Renovate run yet.
+
+    So this asserts over the rendered project, not over a list of files someone
+    remembered to include, and it checks the property that actually matters -- agreement
+    -- rather than the presence of a pin.
+    """
+    project = copie_session_default.project_dir
+
+    pin = re.compile(r'(?:uv["\s]+|version:\s*")(\d+\.\d+\.\d+)')
+    annotation = "# renovate:"
+
+    found: dict[str, list[str]] = {}
+    unannotated: list[str] = []
+
+    for path in sorted(project.rglob("*")):
+        if not path.is_file() or ".git" in path.parts or path.suffix not in {".yml", ".yaml"}:
+            continue
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for i, line in enumerate(lines):
+            if "uv" not in line and "setup-uv" not in line:
+                continue
+            match = pin.search(line)
+            if not match:
+                continue
+            rel = f"{path.relative_to(project)}:{i + 1}"
+            found.setdefault(match.group(1), []).append(rel)
+            # The annotation must be on the immediately preceding line, which is where
+            # Renovate's regex looks. A comment three lines up reads fine and is invisible.
+            if annotation not in (lines[i - 1] if i else ""):
+                unannotated.append(rel)
+
+    assert found, (
+        "found no uv pins in the rendered project, so this test measures nothing. The pin "
+        "syntax changed or the scan is reading the wrong tree; fix the check, do not delete it"
+    )
+    assert len(found) == 1, (
+        "the project pins more than one uv version, so CI and the docs build do not run the "
+        f"same toolchain: { ({v: sorted(p)[:4] for v, p in found.items()}) }"
+    )
+    assert not unannotated, (
+        "uv pins with no `# renovate:` annotation on the line immediately above, so a bot "
+        f"bump moves the annotated ones and strands these: {unannotated}"
+    )
+
+
 def test_workflows_pin_uv_nox_and_git_cliff(copie_session_default):
     """uv, nox and git-cliff are pinned to exact versions, not floating "latest".
 
@@ -5370,7 +5528,7 @@ def test_citation_file_is_generated_at_the_root(copie_session_default):
     project_dir = copie_session_default.project_dir
     _, citation = _citation_file(project_dir)
 
-    for key in ("cff-version", "message", "title", "abstract", "type", "authors", "repository-code"):
+    for key in ("cff-version", "message", "title", "type", "authors", "repository-code"):
         assert key in citation, f"CITATION.cff is missing the required `{key}` field"
     assert citation["authors"], "CITATION.cff lists no authors; the format requires at least one"
 
@@ -5428,7 +5586,12 @@ def test_citation_fields_agree_with_package_metadata(copie_session_default):
     answers = yaml.safe_load((project_dir / ".copier-answers.yml").read_text(encoding="utf-8"))
     expected_repo = f"https://github.com/{answers['github_username']}/{answers['project_slug']}"
     assert citation["repository-code"] == expected_repo, "the citation points at the wrong repository"
-    assert citation["title"] == answers["project_name"], "the citation cites something other than this project"
+    # Name and description in one field: a reference list prints the title and nothing
+    # else, so the description has to live there or it is never seen. There is no
+    # separate `abstract` for the same reason.
+    expected_title = f"{answers['project_name']}: {answers['description']}"
+    assert citation["title"] == expected_title, "the citation title is not `<name>: <description>`"
+    assert "abstract" not in citation, "CITATION.cff carries an abstract duplicating the title"
 
 
 def test_readme_citation_section_sits_between_licence_and_acknowledgements(copie_session_default):
