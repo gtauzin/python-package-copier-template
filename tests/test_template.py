@@ -978,6 +978,41 @@ def test_drain_workflow_does_not_update_branches_with_github_token(copie_session
     )
 
 
+def test_drain_workflow_survives_a_missing_workflows_permission(copie_session_default):
+    """A missing `workflows: write` warns and exits 0; anything else still fails loudly.
+
+    Found in production, not in review. The App that updates the branch needs
+    `workflows: write` to push a diff touching `.github/workflows/*`, and in this fleet
+    that is most dependency updates -- action pins and tool versions live in the
+    workflows. Without it every such update returns:
+
+        refusing to allow a GitHub App to create or update workflow
+        `.github/workflows/nightly.yml` without `workflows` permission (HTTP 403)
+
+    That is a configuration gap, not a fault, and it recurs on *every* push until someone
+    grants the permission. Failing the run would paint the default branch red
+    indefinitely, and a permanently red main is worse than an amber one: it trains people
+    to ignore the colour, which is how a real failure gets missed.
+
+    So this one case warns and exits 0. Every other failure still exits 1, because the
+    alternative -- swallowing all errors -- is the silent green this fleet keeps getting
+    caught by. The distinction is the point of the test: verify BOTH branches exist, not
+    just that the workflow tolerates something.
+    """
+    workflow = copie_session_default.project_dir / ".github" / "workflows" / "drain-automerge-queue.yml"
+    text = workflow.read_text(encoding="utf-8")
+
+    assert "without .workflows. permission" in text, (
+        "the drain workflow does not detect the missing-workflows-permission 403, so it "
+        "will fail the run on every push until the permission is granted"
+    )
+    assert "::warning" in text, "the permission gap must surface as a warning annotation"
+    assert "::error" in text, (
+        "no ::error branch left: swallowing every failure turns this into a job that "
+        "reports success while advancing nothing"
+    )
+
+
 def test_drain_workflow_advances_exactly_one_pull_request(copie_session_default):
     """The drainer updates one PR per push, not every PR that is behind.
 
