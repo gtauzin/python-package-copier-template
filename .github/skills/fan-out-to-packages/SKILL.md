@@ -215,6 +215,36 @@ earlier release did leave both copies, so **verify which happened** rather than 
   at matching line counts — the exact mistake §2.5 warns about, made while writing the
   warning. yohou differed at an identical line count.
 
+**`--conflict rej` MANUFACTURES the conflicts and destroys local content. Do not pass it.**
+Copier's default is a three-way inline merge. The `update-from-template` skill prescribed
+`--conflict rej` for years on the grounds that a `.rej` is easier to parse than markers
+interleaved with content — reasoning about *reading* the outcome, which ignores what the two
+modes do to the file. Measured in the v0.44.0 round on one repo, one release, same commit,
+only the flag differing:
+
+| | `--conflict rej` | default (inline) |
+|---|---|---|
+| `.rej` files | 5 | **0** |
+| digest-pinned `uses:` lines | 49 → **26** | 49 → **49** |
+| local `exclude:` block in `tests.yml` | **destroyed** | intact |
+| tracked files changed | 7 | **2** |
+
+`git apply --reject` is all-or-nothing **per hunk** and knows nothing of the merge base, so a
+hunk carrying the template's change plus context lines the project legitimately edited fails as
+a unit, and the template's version of everything that *did* apply lands. Inline does a real
+three-way merge: where base, local and template agree it keeps the agreement, and it marks only
+genuine divergence.
+
+**The damage is not limited to what you would think to recount.** In one repo the reject mode
+also replaced a live `Compat tests` pin set with the template's **disabled** placeholder and
+dropped `lfs: true` from a checkout step. A digest recount reports those files clean. This is
+why the rule is a whole-file pre→post diff and not a count of anything.
+
+It also produced this round's most confusing result: one agent reported five `.rej` and a
+49→26 digest revert while three others reported a spotless run on the same release, and the
+difference was a flag one of them passed. **When two agents disagree about the same release,
+compare their commands before theorising about their repos.**
+
 **Copier destroys local content silently.**
 - It **overwrites binaries every run**, regardless of diff — no conflict, no `.rej`, only a
   `Bin NNNN -> NNNN` line. This ate project logos for months. Only `_skip_if_exists`
@@ -423,7 +453,9 @@ checked.
 shipped `renovate-automerge.yml`, whose approve step needs
 `can_approve_pull_request_reviews`. That was set at the **org** level and three of the eight repos
 carried an explicit repo-level `false` that the org value does **not** override
-(python-package-copier, kedro-dagster, yohou-nixtla). The workflow merged green in all eight, its
+(python-package-copier, kedro-dagster, yohou-nixtla — **all three fixed on 2026-08-13; all eight
+now read `true`, so do not re-report them, but DO re-read the setting rather than trusting this
+sentence**). The workflow merged green in all eight, its
 guard correctly declined on every human PR so the approve step never executed, and the 403 would
 have surfaced days later on the first real Renovate PR — in the repo with the largest backlog. One
 agent read the setting and found two; re-measuring all eight found three.
@@ -504,6 +536,16 @@ only after merge. Compare open-to-open.
   It also **inflates the "how many checks RAN" tally** this file asks for two bullets down, which is
   the third hole in that number alongside `Compat tests` and `Validate Commit Message`. A `skipping`
   line here is the guard working, not firing.
+
+    **But a workflow with NO `pull_request` trigger registers NO check at all — it is absent,
+    not `skipping`.** These are two different outcomes and the v0.44.0 brief conflated them,
+    which four agents corrected independently. `renovate-automerge.yml` triggers on
+    `pull_request` with a false job guard, so it shows `skipping`.
+    `drain-automerge-queue.yml` triggers only on `push` to `main`, so nothing appears for it
+    anywhere. An agent told to expect a `skipping` line for it goes hunting for a workflow that
+    was never going to be there, and may conclude the update dropped it.
+    The rule: **derive the expected check list from each workflow's `on:` block**, not from the
+    fact that a workflow exists in the tree.
 - **`Compat tests` is hardcoded `if: false` in SIX of the seven repos** (yohou-optuna,
   yohou-nixtla, sklearn-optuna, sklearn-wrap, kedro-dagster, **kedro-azureml-pipeline** —
   `# disabled until pins are defined`), and the `ci-passed` roll-up treats `skipped` as
