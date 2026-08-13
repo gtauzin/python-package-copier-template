@@ -1011,6 +1011,65 @@ def test_drain_workflow_advances_exactly_one_pull_request(copie_session_default)
     assert "renovate/" in run, "the drainer does not filter on the renovate/ branch prefix"
 
 
+def test_every_uv_pin_agrees_and_carries_its_own_annotation(copie_session_default):
+    """Every uv pin in the project is the same version, and each one is annotated.
+
+    Two failures, one test, because they are the same mistake seen from either end.
+
+    The existing pin scans quantify over **workflow files**, so `.readthedocs.yml` was
+    outside the set being measured. v0.44.0 moved the uv seed to 0.12.3 in five workflows
+    and left Read the Docs installing 0.10.0, and nothing failed: CI and the docs build
+    ran different uv versions in every generated project.
+
+    Worse, that file pinned uv on two lines under a single `# renovate:` annotation.
+    Renovate's regex manager matches per annotated occurrence, so the next bump would
+    have produced `asdf install uv <new>` followed by `asdf global uv <old>` -- selecting
+    a version that was never installed, breaking the docs build fleet-wide. It was armed
+    and unfired: the annotation had simply not been reached by a Renovate run yet.
+
+    So this asserts over the rendered project, not over a list of files someone
+    remembered to include, and it checks the property that actually matters -- agreement
+    -- rather than the presence of a pin.
+    """
+    project = copie_session_default.project_dir
+
+    pin = re.compile(r'(?:uv["\s]+|version:\s*")(\d+\.\d+\.\d+)')
+    annotation = "# renovate:"
+
+    found: dict[str, list[str]] = {}
+    unannotated: list[str] = []
+
+    for path in sorted(project.rglob("*")):
+        if not path.is_file() or ".git" in path.parts or path.suffix not in {".yml", ".yaml"}:
+            continue
+        lines = path.read_text(encoding="utf-8").splitlines()
+        for i, line in enumerate(lines):
+            if "uv" not in line and "setup-uv" not in line:
+                continue
+            match = pin.search(line)
+            if not match:
+                continue
+            rel = f"{path.relative_to(project)}:{i + 1}"
+            found.setdefault(match.group(1), []).append(rel)
+            # The annotation must be on the immediately preceding line, which is where
+            # Renovate's regex looks. A comment three lines up reads fine and is invisible.
+            if annotation not in (lines[i - 1] if i else ""):
+                unannotated.append(rel)
+
+    assert found, (
+        "found no uv pins in the rendered project, so this test measures nothing. The pin "
+        "syntax changed or the scan is reading the wrong tree; fix the check, do not delete it"
+    )
+    assert len(found) == 1, (
+        "the project pins more than one uv version, so CI and the docs build do not run the "
+        f"same toolchain: { ({v: sorted(p)[:4] for v, p in found.items()}) }"
+    )
+    assert not unannotated, (
+        "uv pins with no `# renovate:` annotation on the line immediately above, so a bot "
+        f"bump moves the annotated ones and strands these: {unannotated}"
+    )
+
+
 def test_workflows_pin_uv_nox_and_git_cliff(copie_session_default):
     """uv, nox and git-cliff are pinned to exact versions, not floating "latest".
 
