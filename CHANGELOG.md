@@ -6,6 +6,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.43.1] - 2026-08-13
+
+This **patch release** includes 2 commits.
+
+
+### Bug Fixes
+- Put the description in the citation title, and drop the abstract  ([#308](https://github.com/stateful-y/python-package-copier/pull/308)) by @gtauzin
+- Pin the uv version Read the Docs installs, and correct the ignored-path claim  ([#307](https://github.com/stateful-y/python-package-copier/pull/307)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
+## [0.43.0] - 2026-08-12
+
+This **minor release** includes 2 commits.
+
+
+### Features
+- Tell every generated project how to cite itself  ([#305](https://github.com/stateful-y/python-package-copier/pull/305)) by @gtauzin
+
+### Bug Fixes
+- Classify every shipped binary, and correct the fan-out record  ([#304](https://github.com/stateful-y/python-package-copier/pull/304)) by @gtauzin
+
+### Contributors
+
+Thanks to all contributors for this release:
+- @gtauzin
+
 ## [0.42.0] - 2026-08-12
 
 This **minor release** includes 4 commits.
