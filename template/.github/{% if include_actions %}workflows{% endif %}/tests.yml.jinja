@@ -145,7 +145,7 @@ jobs:
 
 {% if include_codecov %}      - name: Upload test results to Codecov
         if: {% raw %}${{ !cancelled() && matrix.python-version == '{% endraw %}{{ min_python_version }}{% raw %}'{% endraw %}{% if repo_visibility != 'public' %}{% raw %} && env.CODECOV_TOKEN != ''{% endraw %}{% endif %}{% raw %} }}{% endraw %}
-        uses: codecov/test-results-action@v1
+        uses: codecov/test-results-action@v1.2.1
         with:
 {% if repo_visibility == 'public' %}          use_oidc: true
 {% else %}          token: {% raw %}${{ env.CODECOV_TOKEN }}{% endraw %}
