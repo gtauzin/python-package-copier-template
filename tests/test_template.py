@@ -5370,7 +5370,7 @@ def test_citation_file_is_generated_at_the_root(copie_session_default):
     project_dir = copie_session_default.project_dir
     _, citation = _citation_file(project_dir)
 
-    for key in ("cff-version", "message", "title", "abstract", "type", "authors", "repository-code"):
+    for key in ("cff-version", "message", "title", "type", "authors", "repository-code"):
         assert key in citation, f"CITATION.cff is missing the required `{key}` field"
     assert citation["authors"], "CITATION.cff lists no authors; the format requires at least one"
 
@@ -5428,7 +5428,12 @@ def test_citation_fields_agree_with_package_metadata(copie_session_default):
     answers = yaml.safe_load((project_dir / ".copier-answers.yml").read_text(encoding="utf-8"))
     expected_repo = f"https://github.com/{answers['github_username']}/{answers['project_slug']}"
     assert citation["repository-code"] == expected_repo, "the citation points at the wrong repository"
-    assert citation["title"] == answers["project_name"], "the citation cites something other than this project"
+    # Name and description in one field: a reference list prints the title and nothing
+    # else, so the description has to live there or it is never seen. There is no
+    # separate `abstract` for the same reason.
+    expected_title = f"{answers['project_name']}: {answers['description']}"
+    assert citation["title"] == expected_title, "the citation title is not `<name>: <description>`"
+    assert "abstract" not in citation, "CITATION.cff carries an abstract duplicating the title"
 
 
 def test_readme_citation_section_sits_between_licence_and_acknowledgements(copie_session_default):
