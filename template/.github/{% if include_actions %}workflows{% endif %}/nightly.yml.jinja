@@ -36,7 +36,7 @@ jobs:
         uses: astral-sh/setup-uv@v7.6
         with:
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.3"
+          version: "0.12.4"
           enable-cache: true
           cache-dependency-glob: "pyproject.toml"
 
@@ -106,7 +106,7 @@ jobs:
         uses: astral-sh/setup-uv@v7.6
         with:
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.3"
+          version: "0.12.4"
 
       - name: Build package
         run: uv build --python {{ min_python_version }} --python-preference only-managed --sdist --wheel . --out-dir dist
