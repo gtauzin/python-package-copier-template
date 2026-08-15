@@ -42,7 +42,7 @@ jobs:
 
       - name: Install uv
         if: {% raw %}${{ github.event.pull_request.commits == 1 }}{% endraw %}
-        uses: astral-sh/setup-uv@v7.6
+        uses: astral-sh/setup-uv@v10.0.1
         with:
           # renovate: datasource=github-releases depName=astral-sh/uv
           version: "0.12.4"
