@@ -86,7 +86,7 @@ jobs:
       # one without a long-lived personal access token.
       - name: Generate a token from the fleet automation GitHub App
         id: app-token
-        uses: actions/create-github-app-token@v2.2.2
+        uses: actions/create-github-app-token@v3.2.0
         with:
           app-id: {% raw %}${{ secrets.APP_ID }}{% endraw %}
           private-key: {% raw %}${{ secrets.APP_PRIVATE_KEY }}{% endraw %}
