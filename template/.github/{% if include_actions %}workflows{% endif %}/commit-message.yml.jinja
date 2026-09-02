@@ -45,7 +45,7 @@ jobs:
         uses: astral-sh/setup-uv@v10.0.1
         with:
           # renovate: datasource=github-releases depName=astral-sh/uv
-          version: "0.12.8"
+          version: "0.12.9"
 
       - name: Set up Python
         if: {% raw %}${{ github.event.pull_request.commits == 1 }}{% endraw %}
